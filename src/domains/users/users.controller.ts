@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { RegisterUserDto } from './dto/register.user.dto';
+import { UpdateUserDto } from './dto/update-info.user.dto';
 import { UsersUseCase } from './usecases/users.usecase';
 
 @Controller('users')
@@ -8,27 +8,22 @@ export class UsersController {
   constructor(private readonly usersUseCase: UsersUseCase) {}
 
   @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersUseCase.create(createUserDto);
+  create(@Body() createUserDto: RegisterUserDto) {
+    return this.usersUseCase.register(createUserDto);
   }
 
-  @Get()
-  findAll() {
-    return this.usersUseCase.findAll();
+  @Get(':userId')
+  findOne(@Param('userId') userId: string) {
+    return this.usersUseCase.findUserInfo(userId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersUseCase.findOne(id);
+  @Patch(':userId')
+  updateUserInfo(@Param('userId') userId: string, @Body() updateUserInfoDto: UpdateUserDto) {
+    return this.usersUseCase.update(userId, updateUserInfoDto);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersUseCase.update(id, updateUserDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersUseCase.remove(id);
+  @Delete(':userId')
+  unregister(@Param('userId') userId: string) {
+    return this.usersUseCase.unregister(userId);
   }
 }

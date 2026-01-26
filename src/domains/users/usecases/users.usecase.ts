@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { CreateUserDto } from '../dto/create-user.dto';
-import { UpdateUserDto } from '../dto/update-user.dto';
-import { UsersRepository } from '../ports/users.repository';
+import { RegisterUserDto } from '../dto/register.user.dto';
+import { UpdateUserDto as UpdateUserInfoDto } from '../dto/update-info.user.dto';
+import type { UsersRepository } from '../ports/users.repository';
 import { USERS_REPOSITORY } from '../users.tokens';
 
 @Injectable()
@@ -11,23 +11,24 @@ export class UsersUseCase {
     private readonly usersRepository: UsersRepository,
   ) {}
 
-  create(createUserDto: CreateUserDto) {
-    return this.usersRepository.create(createUserDto);
+  register(registerUserDto: RegisterUserDto) {
+    const input = registerUserDto;
+    const txnRes = this.usersRepository.register(input);
+    return txnRes;
   }
 
-  findAll() {
-    return this.usersRepository.findAll();
+  findUserInfo(userId: string) {
+    const txnRes = this.usersRepository.findOne(userId);
+    return txnRes;
   }
 
-  findOne(id: string) {
-    return this.usersRepository.findOne(id);
+  update(userId: string, updateUserInfoDto: UpdateUserInfoDto) {
+    const txnRes = this.usersRepository.update(userId, updateUserInfoDto);
+    return txnRes;
   }
 
-  update(id: string, updateUserDto: UpdateUserDto) {
-    return this.usersRepository.update(id, updateUserDto);
-  }
-
-  remove(id: string) {
-    return this.usersRepository.remove(id);
+  unregister(userId: string) {
+    const txnRes = this.usersRepository.unregister(userId);
+    return txnRes;
   }
 }

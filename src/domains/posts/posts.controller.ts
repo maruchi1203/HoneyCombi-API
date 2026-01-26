@@ -1,6 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { CreatePostDto } from './dto/create-post.dto';
-import { UpdatePostDto } from './dto/update-post.dto';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
+import { CreatePostDto } from './dto/create.post.dto';
+import { UpdatePostDto } from './dto/update.post.dto';
 import { PostsUseCase } from './usecases/posts.usecase';
 
 @Controller('posts')

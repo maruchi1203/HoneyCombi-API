@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from '../dto/create-user.dto';
-import { UpdateUserDto } from '../dto/update-user.dto';
+import { RegisterUserDto } from '../dto/register.user.dto';
+import { UpdateUserDto } from '../dto/update-info.user.dto';
 import { User } from '../entities/user.entity';
 import { UsersRepository } from '../ports/users.repository';
 
 @Injectable()
 export class FirebaseUsersRepository implements UsersRepository {
-  async create(data: CreateUserDto): Promise<User> {
+  async register(data: RegisterUserDto): Promise<User> {
     return { id: 'firebase-user-id', ...data };
   }
 
@@ -19,10 +19,14 @@ export class FirebaseUsersRepository implements UsersRepository {
   }
 
   async update(id: string, data: UpdateUserDto): Promise<User> {
-    return { id, name: data.name ?? 'firebase-user', email: data.email ?? 'firebase@example.com' };
+    return {
+      id,
+      name: data.name ?? 'firebase-user',
+      email: data.email ?? 'firebase@example.com',
+    };
   }
 
-  async remove(_id: string): Promise<void> {
+  async unregister(_id: string): Promise<void> {
     return;
   }
 }

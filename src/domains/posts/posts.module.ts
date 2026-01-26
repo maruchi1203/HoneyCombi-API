@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { PostsController } from './posts.controller';
 import { POSTS_REPOSITORY } from './posts.tokens';
 import { PostsUseCase } from './usecases/posts.usecase';
-import { FirebasePostsRepository } from './adapters/firebase-posts.repository';
-import { AwsPostsRepository } from './adapters/aws-posts.repository';
+import { FirebasePostsRepository } from './adapters/firebase.posts.repository';
+import { AwsPostsRepository } from './adapters/aws.posts.repository';
 
 const postsRepositoryProvider = {
   provide: POSTS_REPOSITORY,

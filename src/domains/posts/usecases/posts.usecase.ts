@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { CreatePostDto } from '../dto/create-post.dto';
-import { UpdatePostDto } from '../dto/update-post.dto';
-import { PostsRepository } from '../ports/posts.repository';
+import { CreatePostDto } from '../dto/create.post.dto';
+import { UpdatePostDto } from '../dto/update.post.dto';
+import type { PostsRepository } from '../ports/posts.repository';
 import { POSTS_REPOSITORY } from '../posts.tokens';
 
 @Injectable()
@@ -12,11 +12,11 @@ export class PostsUseCase {
   ) {}
 
   create(createPostDto: CreatePostDto) {
-    return this.postsRepository.create(createPostDto);
+    return this.postsRepository.createPost(createPostDto);
   }
 
   findAll() {
-    return this.postsRepository.findAll();
+    return this.postsRepository.findManyPosts();
   }
 
   findOne(id: string) {

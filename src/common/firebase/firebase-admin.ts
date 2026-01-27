@@ -1,11 +1,24 @@
 import admin from 'firebase-admin';
+import { getStorage } from 'firebase-admin/storage';
+import type { Bucket } from '@google-cloud/storage';
 
 let firebaseApp: admin.app.App | null = null;
+let firestoreInstance: admin.firestore.Firestore | null = null;
 
 function loadServiceAccount(): admin.ServiceAccount {
-  const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
-  if (!raw) {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT is required');
+  const rawInput = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!rawInput) {
+    throw new Error(
+      'FIREBASE_SERVICE_ACCOUNT or FIREBASE_SERVICE_ACCOUNT_PATH is required',
+    );
+  }
+
+  let raw = rawInput.trim();
+  if (
+    (raw.startsWith('"') && raw.endsWith('"')) ||
+    (raw.startsWith("'") && raw.endsWith("'"))
+  ) {
+    raw = raw.slice(1, -1);
   }
 
   let parsed = JSON.parse(raw) as admin.ServiceAccount;
@@ -37,16 +50,24 @@ export function getFirebaseApp(): admin.app.App {
 }
 
 export function getFirestore(): admin.firestore.Firestore {
-  return getFirebaseApp().firestore();
-}
-
-export function getStorageBucket(): admin.storage.Bucket {
-  const app = getFirebaseApp();
-  const bucketName = process.env.FIREBASE_STORAGE_BUCKET;
-
-  if (bucketName) {
-    return app.storage().bucket(bucketName);
+  if (firestoreInstance) {
+    return firestoreInstance;
   }
 
-  return app.storage().bucket();
+  const firestore = getFirebaseApp().firestore();
+  firestore.settings({ ignoreUndefinedProperties: true });
+  firestoreInstance = firestore;
+  return firestore;
+}
+
+export function getStorageBucket(): Bucket {
+  const app = getFirebaseApp();
+  const bucketName = process.env.FIREBASE_STORAGE_BUCKET;
+  const storage = getStorage(app);
+
+  if (bucketName) {
+    return storage.bucket(bucketName);
+  }
+
+  return storage.bucket();
 }

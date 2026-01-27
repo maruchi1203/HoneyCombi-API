@@ -3,13 +3,13 @@ import { UpdateRecipeDto } from '../dto/update-recipe.dto';
 import { RecipeListItem } from '../entities/recipe-list-item.entity';
 import { Recipe } from '../entities/recipe.entity';
 
-export interface PostsRepository {
+export interface RecipesRepository {
   createRecipe(
     data: CreateRecipeDto,
     files?: Express.Multer.File[],
   ): Promise<Recipe>;
   findManyRecipes(
-    start: number,
+    cursor: string | undefined,
     sort: string,
     limit: number,
   ): Promise<RecipeListItem[] | null>;

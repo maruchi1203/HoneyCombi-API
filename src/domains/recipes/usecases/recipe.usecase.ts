@@ -2,32 +2,28 @@ import { Injectable, Inject } from '@nestjs/common';
 import { CreateRecipeDto } from '../dto/create-recipe.dto';
 import { RecipeListQueryDto } from '../dto/recipe-list-query.dto';
 import { UpdateRecipeDto } from '../dto/update-recipe.dto';
-import { RecipeListItem } from '../entities/recipe-list-item.entity';
-import type { PostsRepository } from '../ports/recipe.repository';
+import type { RecipesRepository } from '../ports/recipe.repository';
 import { RECIPE_REPOSITORY } from '../recipe.tokens';
 
 @Injectable()
-export class PostsUseCase {
+export class RecipesUseCase {
   constructor(
     @Inject(RECIPE_REPOSITORY)
-    private readonly recipeRepository: PostsRepository,
+    private readonly recipeRepository: RecipesRepository,
   ) {}
 
-  createRecipe(
-    createPostDto: CreateRecipeDto,
-    files?: Express.Multer.File[],
-  ) {
+  createRecipe(createPostDto: CreateRecipeDto, files?: Express.Multer.File[]) {
     const result = this.recipeRepository.createRecipe(createPostDto, files);
     return result;
   }
 
   async findRecipeListItems(query?: RecipeListQueryDto) {
-    const start = query?.start ?? 0;
+    const cursor = query?.cursor;
     const sort = query?.sort ?? 'latest';
     const limit = this.parseLimit(query?.limit);
 
     const items =
-      (await this.recipeRepository.findManyRecipes(start, sort, limit)) ?? [];
+      (await this.recipeRepository.findManyRecipes(cursor, sort, limit)) ?? [];
 
     return items;
   }

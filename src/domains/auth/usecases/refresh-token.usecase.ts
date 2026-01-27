@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { AUTH_TOKEN_SERVICE } from '../auth.tokens';
-import { TokenService } from '../ports/token.service';
+import type { TokenService } from '../ports/token.service';
 
 @Injectable()
 export class RefreshTokenUseCase {
@@ -11,7 +11,9 @@ export class RefreshTokenUseCase {
 
   refresh(refreshToken: string) {
     const payload = this.tokenService.verifyRefreshToken(refreshToken);
-    const accessToken = this.tokenService.createAccessToken({ sub: payload.sub });
+    const accessToken = this.tokenService.createAccessToken({
+      sub: payload.sub,
+    });
 
     return { accessToken };
   }

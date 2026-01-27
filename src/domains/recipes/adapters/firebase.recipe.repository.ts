@@ -7,12 +7,12 @@ import {
 import { CreateRecipeDto } from '../dto/create-recipe.dto';
 import { UpdateRecipeDto } from '../dto/update-recipe.dto';
 import { Recipe } from '../entities/recipe.entity';
-import { PostsRepository } from '../ports/recipe.repository';
+import { RecipesRepository } from '../ports/recipe.repository';
 import { RecipeListItem } from '../entities/recipe-list-item.entity';
 import { ImageDto } from '../../../common/dto/image.dto';
 
 @Injectable()
-export class FirebasePostsRepository implements PostsRepository {
+export class FirebaseRecipesRepository implements RecipesRepository {
   private readonly collection = 'recipes';
 
   async createRecipe(
@@ -47,12 +47,31 @@ export class FirebasePostsRepository implements PostsRepository {
   }
 
   async findManyRecipes(
-    start: number,
+    cursor: string | undefined,
     sort: string,
     limit: number,
   ): Promise<RecipeListItem[]> {
     const db = getFirestore();
-    const snapshot = await db.collection(this.collection).get();
+    let query: admin.firestore.Query = db.collection(this.collection);
+
+    if (sort === 'likes') {
+      query = query.orderBy('stats.totalRate', 'desc');
+    } else {
+      query = query.orderBy('createdAt', 'desc');
+    }
+
+    if (cursor) {
+      if (sort === 'likes') {
+        const numericCursor = Number(cursor);
+        if (Number.isFinite(numericCursor)) {
+          query = query.startAfter(numericCursor);
+        }
+      } else {
+        query = query.startAfter(cursor);
+      }
+    }
+
+    const snapshot = await query.limit(limit).get();
 
     return snapshot.docs.map((doc) => this.mapSnapshotForRecipeListItem(doc));
   }
@@ -73,11 +92,12 @@ export class FirebasePostsRepository implements PostsRepository {
     data: UpdateRecipeDto,
   ): Promise<Recipe> {
     const db = getFirestore();
+    const sanitized = this.stripUndefined(data);
     await db
       .collection(this.collection)
       .doc(id)
       .update({
-        ...data,
+        ...sanitized,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
@@ -123,6 +143,7 @@ export class FirebasePostsRepository implements PostsRepository {
 
     return {
       id: snapshot.id,
+      authorId: data?.authorId ?? '',
       title: data?.title ?? '',
       price: data?.price,
       categories: data?.categories ?? [],
@@ -252,5 +273,11 @@ export class FirebasePostsRepository implements PostsRepository {
         contentType: file.mimetype,
       });
     }
+  }
+
+  private stripUndefined(value: UpdateRecipeDto) {
+    return Object.fromEntries(
+      Object.entries(value).filter(([, entry]) => entry !== undefined),
+    ) as Partial<UpdateRecipeDto>;
   }
 }

@@ -1,5 +1,5 @@
 export class RecipeListQueryDto {
-  start?: number;
+  cursor?: string;
   sort?: 'latest' | 'views' | 'likes';
   limit?: number;
 }

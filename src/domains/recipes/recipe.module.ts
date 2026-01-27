@@ -1,20 +1,20 @@
 import { Module } from '@nestjs/common';
-import { PostsController } from './recipe.controller';
+import { RecipesController as RecipesController } from './recipe.controller';
 import { RECIPE_REPOSITORY } from './recipe.tokens';
-import { PostsUseCase } from './usecases/recipe.usecase';
-import { FirebasePostsRepository } from './adapters/firebase.recipe.repository';
-import { AwsPostsRepository } from './adapters/aws.recipe.repository';
+import { RecipesUseCase } from './usecases/recipe.usecase';
+import { FirebaseRecipesRepository } from './adapters/firebase.recipe.repository';
+import { AwsRecipesRepository } from './adapters/aws.recipe.repository';
 
-const postsRepositoryProvider = {
+const recipesRepositoryProvider = {
   provide: RECIPE_REPOSITORY,
   useClass:
     process.env.DATA_PROVIDER === 'aws'
-      ? AwsPostsRepository
-      : FirebasePostsRepository,
+      ? AwsRecipesRepository
+      : FirebaseRecipesRepository,
 };
 
 @Module({
-  controllers: [PostsController],
-  providers: [PostsUseCase, postsRepositoryProvider],
+  controllers: [RecipesController],
+  providers: [RecipesUseCase, recipesRepositoryProvider],
 })
-export class PostsModule {}
+export class RecipeModule {}

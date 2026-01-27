@@ -8,28 +8,19 @@ import {
   Delete,
   Query,
   BadRequestException,
-  UseInterceptors,
   UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { CreateRecipeDto } from './dto/create-recipe.dto';
 import { UpdateRecipeDto } from './dto/update-recipe.dto';
-import { RecipeListQueryDto } from './dto/recipe-list-query.dto';
 import { RecipeStepDto } from './dto/recipe-step.dto';
-import { PostsUseCase as RecipeUseCase } from './usecases/recipe.usecase';
-
-type CreateRecipeMultipartDto = Omit<
-  CreateRecipeDto,
-  'categories' | 'steps' | 'price'
-> & {
-  categories?: string[] | string;
-  steps?: RecipeStepDto[] | string;
-  price?: number | string;
-};
+import { RecipesUseCase as RecipeUseCase } from './usecases/recipe.usecase';
+import { CreateRecipeDto, CreateRecipeInput } from './dto/create-recipe.dto';
+import { RecipeListQueryDto } from './dto/recipe-list-query.dto';
 
 @Controller('recipes')
-export class PostsController {
+export class RecipesController {
   constructor(private readonly recipeUseCase: RecipeUseCase) {}
 
   @Post()
@@ -38,16 +29,17 @@ export class PostsController {
       storage: memoryStorage(),
     }),
   )
-  create(
-    @Body() body: CreateRecipeMultipartDto,
+  createRecipe(
+    @Body() body: CreateRecipeInput,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
+    console.log(body);
     const createRecipeDto = this.parseCreateRecipeBody(body);
     return this.recipeUseCase.createRecipe(createRecipeDto, files);
   }
 
   @Get()
-  findAll(@Query() query: RecipeListQueryDto) {
+  findMultipleRecipes(@Query() query: RecipeListQueryDto) {
     const result = this.recipeUseCase.findRecipeListItems(query);
     return result;
   }
@@ -70,17 +62,12 @@ export class PostsController {
     return this.recipeUseCase.deleteRecipe(recipeId);
   }
 
-  private parseCreateRecipeBody(body: CreateRecipeMultipartDto): CreateRecipeDto {
-    const categories = this.parseJsonValue<string[]>(
-      body.categories,
-      'categories',
-      [],
-    );
-    const steps = this.parseJsonValue<RecipeStepDto[]>(
-      body.steps,
-      'steps',
-      [],
-    );
+  private parseCreateRecipeBody(body: CreateRecipeInput): CreateRecipeDto {
+    if (!body) {
+      throw new BadRequestException('request body is required');
+    }
+    const categories = this.parseStringArray(body.categories);
+    const steps = this.parseToRecipeStepDTO(body.steps);
     const price = this.parseNumber(body.price);
 
     return {
@@ -107,23 +94,105 @@ export class PostsController {
     return parsed;
   }
 
-  private parseJsonValue<T>(
-    value: T | string | undefined,
-    fieldName: string,
-    defaultValue: T,
-  ): T {
+  private parseToRecipeStepDTO(
+    value?: RecipeStepDto[] | string,
+  ): RecipeStepDto[] {
     if (value === undefined || value === null || value === '') {
-      return defaultValue;
+      return [];
     }
 
     if (typeof value !== 'string') {
-      return value as T;
+      return value as RecipeStepDto[];
     }
 
     try {
-      return JSON.parse(value) as T;
+      let raw = value.trim();
+      if (
+        (raw.startsWith('"') && raw.endsWith('"')) ||
+        (raw.startsWith("'") && raw.endsWith("'"))
+      ) {
+        raw = raw.slice(1, -1);
+      }
+
+      let parsed: unknown = this.parseLooseJson(raw);
+      if (typeof parsed === 'string') {
+        parsed = this.parseLooseJson(parsed);
+      }
+      if (!Array.isArray(parsed)) {
+        throw new BadRequestException('steps must be an array');
+      }
+
+      const steps = parsed as RecipeStepDto[];
+      if (!Array.isArray(parsed)) {
+        throw new BadRequestException('steps must be an array');
+      }
+
+      return steps.map((step, index) => ({
+        order: Number(step?.order ?? index),
+        text: String(step?.text ?? ''),
+        image: step?.image ?? [],
+      }));
     } catch (error) {
-      throw new BadRequestException(`${fieldName} must be valid JSON`);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('steps must be valid JSON');
+    }
+  }
+
+  private parseLooseJson(raw: string) {
+    try {
+      return JSON.parse(raw);
+    } catch (error) {
+      const trimmed = raw.trim();
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        const normalized = trimmed
+          .replace(/([{,]\s*)([A-Za-z_][\w]*)\s*:/g, '$1"$2":')
+          .replace(/:\s*([^,"\]\}][^,\]\}]*)/g, (_match, value) => {
+            const token = String(value).trim();
+            if (
+              token === 'true' ||
+              token === 'false' ||
+              token === 'null' ||
+              /^-?\d+(\.\d+)?$/.test(token)
+            ) {
+              return `:${token}`;
+            }
+            return `:"${token}"`;
+          });
+
+        return JSON.parse(normalized);
+      }
+
+      throw error;
+    }
+  }
+
+  private parseStringArray(value?: string[] | string) {
+    if (value === undefined || value === null || value === '') {
+      return [];
+    }
+
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      return Array.isArray(parsed) ? parsed : [String(parsed)];
+    } catch (error) {
+      const normalized = trimmed.startsWith('[') && trimmed.endsWith(']')
+        ? trimmed.slice(1, -1)
+        : trimmed;
+      return normalized
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
     }
   }
 }

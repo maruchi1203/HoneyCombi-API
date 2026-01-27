@@ -10,3 +10,14 @@ export class CreateRecipeDto {
 
   steps: RecipeStepDto[];
 }
+
+export class CreateRecipeInput {
+  authorId: string;
+  title: string;
+  categories: string[];
+  price?: number;
+  summary?: string;
+  thumbnailPath?: string;
+
+  steps: string;
+}

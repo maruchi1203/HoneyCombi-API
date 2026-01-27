@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { AUTH_REFRESH_TOKEN_REPOSITORY } from '../auth.tokens';
-import { RefreshTokenRepository } from '../ports/refresh-token.repository';
+import type { RefreshTokenRepository } from '../ports/refresh-token.repository';
 
 @Injectable()
 export class LogoutUseCase {

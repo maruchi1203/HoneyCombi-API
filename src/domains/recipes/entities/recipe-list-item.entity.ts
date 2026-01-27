@@ -1,5 +1,6 @@
 export class RecipeListItem {
   id: string;
+  authorId: string;
   title: string;
   price?: number;
   categories: string[];

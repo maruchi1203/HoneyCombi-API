@@ -1,0 +1,1 @@
+export const RECIPE_REPOSITORY = 'POSTS_REPOSITORY';

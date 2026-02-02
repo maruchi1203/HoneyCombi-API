@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { CreateRecipeDto } from '../dto/create-recipe.dto';
 import { RecipeListQueryDto } from '../dto/recipe-list-query.dto';
 import { UpdateRecipeDto } from '../dto/update-recipe.dto';
-import type { RecipesRepository } from '../ports/recipe.repository';
+import type { RecipesRepository } from '../ports/repository.recipe';
 import { RECIPE_REPOSITORY } from '../recipe.tokens';
 
 @Injectable()
@@ -23,19 +23,20 @@ export class RecipesUseCase {
     const limit = this.parseLimit(query?.limit);
 
     const items =
-      (await this.recipeRepository.findManyRecipes(cursor, sort, limit)) ?? [];
+      (await this.recipeRepository.findRecipeListItems(cursor, sort, limit)) ??
+      [];
 
     return items;
   }
 
   findOneFullRecipe(recipeId: string) {
-    const result = this.recipeRepository.findOneFullRecipe(recipeId);
+    const result = this.recipeRepository.findFullRecipe(recipeId);
 
     return result;
   }
 
   updateOneFullRecipe(recipeId: string, updatePostDto: UpdateRecipeDto) {
-    const result = this.recipeRepository.updateOneFullRecipe(
+    const result = this.recipeRepository.updateFullRecipe(
       recipeId,
       updatePostDto,
     );

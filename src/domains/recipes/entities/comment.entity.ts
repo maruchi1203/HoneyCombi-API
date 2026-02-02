@@ -1,5 +1,6 @@
 export class Comment {
   id: string;
+  recipeId: string;
   authorId: string;
   text: string;
 

@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { CreateRecipeDto } from '../dto/create-recipe.dto';
 import { UpdateRecipeDto } from '../dto/update-recipe.dto';
 import { Recipe } from '../entities/recipe.entity';
-import { RecipeListItem } from '../entities/recipe-list-item.entity';
-import { RecipesRepository } from '../ports/recipe.repository';
+import { RecipeListItem } from '../entities/recipe.list-item.entity';
+import { RecipesRepository } from '../ports/repository.recipe';
 
 @Injectable()
 export class AwsRecipesRepository implements RecipesRepository {
@@ -14,7 +14,7 @@ export class AwsRecipesRepository implements RecipesRepository {
     return { id: 'aws-post-id', ...data } as Recipe;
   }
 
-  async findManyRecipes(
+  async findRecipeListItems(
     _cursor: string | undefined,
     _sort: string,
     _limit: number,
@@ -22,7 +22,7 @@ export class AwsRecipesRepository implements RecipesRepository {
     return [];
   }
 
-  async findOneFullRecipe(id: string): Promise<Recipe | null> {
+  async findFullRecipe(id: string): Promise<Recipe | null> {
     return {
       id,
       title: 'aws-post',
@@ -40,10 +40,7 @@ export class AwsRecipesRepository implements RecipesRepository {
     } as Recipe;
   }
 
-  async updateOneFullRecipe(
-    id: string,
-    data: UpdateRecipeDto,
-  ): Promise<Recipe> {
+  async updateFullRecipe(id: string, data: UpdateRecipeDto): Promise<Recipe> {
     return {
       id,
       title: data.title ?? 'aws-post',

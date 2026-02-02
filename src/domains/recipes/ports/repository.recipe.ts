@@ -1,19 +1,19 @@
 import { CreateRecipeDto } from '../dto/create-recipe.dto';
 import { UpdateRecipeDto } from '../dto/update-recipe.dto';
-import { RecipeListItem } from '../entities/recipe-list-item.entity';
+import { RecipeListItem } from '../entities/recipe.list-item.entity';
 import { Recipe } from '../entities/recipe.entity';
 
 export interface RecipesRepository {
   createRecipe(
-    data: CreateRecipeDto,
+    input: CreateRecipeDto,
     files?: Express.Multer.File[],
   ): Promise<Recipe>;
-  findManyRecipes(
+  findRecipeListItems(
     cursor: string | undefined,
     sort: string,
     limit: number,
   ): Promise<RecipeListItem[] | null>;
-  findOneFullRecipe(stringId: string): Promise<Recipe | null>;
-  updateOneFullRecipe(stringId: string, data: UpdateRecipeDto): Promise<Recipe>;
+  findFullRecipe(stringId: string): Promise<Recipe | null>;
+  updateFullRecipe(stringId: string, data: UpdateRecipeDto): Promise<Recipe>;
   deleteRecipe(stringId: string): Promise<void>;
 }

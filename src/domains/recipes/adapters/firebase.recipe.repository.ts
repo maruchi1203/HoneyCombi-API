@@ -7,29 +7,46 @@ import {
 import { CreateRecipeDto } from '../dto/create-recipe.dto';
 import { UpdateRecipeDto } from '../dto/update-recipe.dto';
 import { Recipe } from '../entities/recipe.entity';
-import { RecipesRepository } from '../ports/recipe.repository';
-import { RecipeListItem } from '../entities/recipe-list-item.entity';
+import { RecipesRepository } from '../ports/repository.recipe';
+import { RecipeListItem } from '../entities/recipe.list-item.entity';
 import { ImageDto } from '../../../common/dto/image.dto';
+import { CommentRepository } from '../ports/comment.recipe';
+import { CreateCommentDto } from '../dto/create-comment.dto';
+import { UpdateCommentDto } from '../dto/update-comment.dto';
+import { Comment } from '../entities/comment.entity';
 
 @Injectable()
-export class FirebaseRecipesRepository implements RecipesRepository {
-  private readonly collection = 'recipes';
+export class FirebaseRecipesRepository
+  implements RecipesRepository, CommentRepository
+{
+  private readonly recipesColName = 'recipes';
+  private readonly commentsColName = 'comments';
 
+  // #region Recipe
+  /**
+   * 필요한 모든 정보를 전달받아 레시피를 생성합니다
+   * @param input 레시피 생성용 DTO
+   * @param files 업로드할 이미지 파일
+   * @returns 레시피
+   */
   async createRecipe(
-    data: CreateRecipeDto,
+    input: CreateRecipeDto,
     files: Express.Multer.File[] = [],
   ): Promise<Recipe> {
+    // 1. DB 연결 및 변수 설정
     const db = getFirestore();
-    const docRef = db.collection(this.collection).doc();
+    const docRef = db.collection(this.recipesColName).doc();
     const recipeId = docRef.id;
+    const { steps, thumbnailPath, ...rest } = input;
 
-    const { steps, thumbnailPath, ...rest } = data;
+    // 2. 이미지 업로드
     const uploaded = await this.uploadRecipeImages(
       recipeId,
       steps ?? [],
       files,
     );
 
+    // 3. 이미지 패스 설정
     const finalThumbnailPath =
       thumbnailPath ?? uploaded.thumbnailPath ?? undefined;
 
@@ -41,18 +58,25 @@ export class FirebaseRecipesRepository implements RecipesRepository {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
+    // 4. 스냅샷 반환
     const snapshot = await docRef.get();
-
     return this.mapSnapshotForRecipe(snapshot);
   }
 
-  async findManyRecipes(
+  /**
+   * 간략화된 레시피 정보 배열을 반환합니다.
+   * @param cursor 검색 시작 기준
+   * @param sort 정렬 기준
+   * @param limit 검색할 레시피 수
+   * @returns 간략화된 레시피 정보 배열
+   */
+  async findRecipeListItems(
     cursor: string | undefined,
     sort: string,
     limit: number,
   ): Promise<RecipeListItem[]> {
     const db = getFirestore();
-    let query: admin.firestore.Query = db.collection(this.collection);
+    let query: admin.firestore.Query = db.collection(this.recipesColName);
 
     if (sort === 'likes') {
       query = query.orderBy('stats.totalRate', 'desc');
@@ -76,9 +100,17 @@ export class FirebaseRecipesRepository implements RecipesRepository {
     return snapshot.docs.map((doc) => this.mapSnapshotForRecipeListItem(doc));
   }
 
-  async findOneFullRecipe(id: string): Promise<Recipe | null> {
+  /**
+   *
+   * @param recipeId
+   * @returns
+   */
+  async findFullRecipe(recipeId: string): Promise<Recipe | null> {
     const db = getFirestore();
-    const snapshot = await db.collection(this.collection).doc(id).get();
+    const snapshot = await db
+      .collection(this.recipesColName)
+      .doc(recipeId)
+      .get();
 
     if (!snapshot.exists) {
       return null;
@@ -87,30 +119,174 @@ export class FirebaseRecipesRepository implements RecipesRepository {
     return this.mapSnapshotForRecipe(snapshot);
   }
 
-  async updateOneFullRecipe(
-    id: string,
+  /**
+   * 아이디를 바탕으로 레시피 내용을 수정합니다
+   * @param recipeId
+   * @param data
+   * @returns
+   */
+  async updateFullRecipe(
+    recipeId: string,
     data: UpdateRecipeDto,
   ): Promise<Recipe> {
     const db = getFirestore();
     const sanitized = this.stripUndefined(data);
     await db
-      .collection(this.collection)
-      .doc(id)
+      .collection(this.recipesColName)
+      .doc(recipeId)
       .update({
         ...sanitized,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-    const snapshot = await db.collection(this.collection).doc(id).get();
+    const snapshot = await db
+      .collection(this.recipesColName)
+      .doc(recipeId)
+      .get();
 
     return this.mapSnapshotForRecipe(snapshot);
   }
 
-  async deleteRecipe(_id: string): Promise<void> {
+  /**
+   * 아이디를 바탕으로 레시피를 삭제합니다
+   * @param recipeId
+   */
+  async deleteRecipe(recipeId: string): Promise<void> {
     const db = getFirestore();
-    await db.collection(this.collection).doc(_id).delete();
+    await db.collection(this.recipesColName).doc(recipeId).delete();
+  }
+  // #endregion
+
+  // #region Comment
+  async createComment(input: CreateCommentDto): Promise<Comment> {
+    const db = getFirestore();
+    const recipeRef = db.collection(this.recipesColName).doc(input.recipeId);
+    const commentRef = recipeRef.collection(this.commentsColName).doc();
+
+    const batch = db.batch();
+    batch.set(commentRef, {
+      recipeId: input.recipeId,
+      authorId: input.authorId,
+      text: input.text,
+      stats: {
+        good: 0,
+        bad: 0,
+      },
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    batch.update(recipeRef, {
+      'stats.comment': admin.firestore.FieldValue.increment(1),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+
+    const snapshot = await commentRef.get();
+    return this.mapSnapshotForComment(snapshot);
   }
 
+  async findOwnComments(authorId: string): Promise<Comment[] | null> {
+    const db = getFirestore();
+    const snapshot = await db
+      .collectionGroup(this.commentsColName)
+      .where('authorId', '==', authorId)
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get();
+
+    if (snapshot.empty) {
+      return [];
+    }
+
+    return snapshot.docs.map((doc) => this.mapSnapshotForComment(doc));
+  }
+
+  async findCommentsByRecipe(recipeId: string): Promise<Comment[] | null> {
+    const db = getFirestore();
+    const snapshot = await db
+      .collection(this.recipesColName)
+      .doc(recipeId)
+      .collection(this.commentsColName)
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get();
+
+    if (snapshot.empty) {
+      return [];
+    }
+
+    return snapshot.docs.map((doc) => this.mapSnapshotForComment(doc));
+  }
+
+  async updateComment(
+    authorId: string,
+    data: UpdateCommentDto,
+  ): Promise<Comment> {
+    const db = getFirestore();
+    const commentRef = db
+      .collection(this.recipesColName)
+      .doc(data.recipeId)
+      .collection(this.commentsColName)
+      .doc(data.commentId);
+
+    const snapshot = await commentRef.get();
+    if (!snapshot.exists) {
+      throw new Error('Comment not found.');
+    }
+
+    const existing = snapshot.data() as Partial<Comment> | undefined;
+    if (existing?.authorId !== authorId) {
+      throw new Error('Not allowed to update this comment.');
+    }
+
+    await commentRef.update({
+      text: data.text,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    const updated = await commentRef.get();
+    return this.mapSnapshotForComment(updated);
+  }
+
+  async deleteComment(
+    authorId: string,
+    recipeId: string,
+    commentId: string,
+  ): Promise<void> {
+    const db = getFirestore();
+    const recipeRef = db.collection(this.recipesColName).doc(recipeId);
+    const commentRef = recipeRef
+      .collection(this.commentsColName)
+      .doc(commentId);
+
+    const snapshot = await commentRef.get();
+    if (!snapshot.exists) {
+      return;
+    }
+
+    const existing = snapshot.data() as Partial<Comment> | undefined;
+    if (existing?.authorId !== authorId) {
+      throw new Error('Not allowed to delete this comment.');
+    }
+
+    const batch = db.batch();
+    batch.delete(commentRef);
+    batch.update(recipeRef, {
+      'stats.comment': admin.firestore.FieldValue.increment(-1),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+  }
+  // #endregion
+
+  // #region snapshot
+  /**
+   *
+   * @param snapshot
+   * @returns
+   */
   private mapSnapshotForRecipe(
     snapshot: admin.firestore.DocumentSnapshot,
   ): Recipe {
@@ -136,6 +312,11 @@ export class FirebaseRecipesRepository implements RecipesRepository {
     };
   }
 
+  /**
+   *
+   * @param snapshot
+   * @returns
+   */
   private mapSnapshotForRecipeListItem(
     snapshot: admin.firestore.DocumentSnapshot,
   ): RecipeListItem {
@@ -158,6 +339,28 @@ export class FirebaseRecipesRepository implements RecipesRepository {
     };
   }
 
+  private mapSnapshotForComment(
+    snapshot: admin.firestore.DocumentSnapshot,
+  ): Comment {
+    const data = snapshot.data() as Partial<Comment> | undefined;
+    const parentRecipeId = snapshot.ref.parent.parent?.id ?? '';
+
+    return {
+      id: snapshot.id,
+      recipeId: data?.recipeId ?? parentRecipeId,
+      authorId: data?.authorId ?? '',
+      text: data?.text ?? '',
+      stats: {
+        good: data?.stats?.good ?? 0,
+        bad: data?.stats?.bad ?? 0,
+      },
+      createdAt: data?.createdAt ?? '',
+      updatedAt: data?.updatedAt,
+    };
+  }
+  // #endregion
+
+  // #region Private
   private async uploadRecipeImages(
     recipeId: string,
     steps: CreateRecipeDto['steps'],
@@ -186,7 +389,7 @@ export class FirebaseRecipesRepository implements RecipesRepository {
 
       const nextIndex = imageIndex ?? uploadedStepsImages[stepIndex].length;
       const extension = this.resolveFileExtension(file);
-      const storagePath = `${this.collection}/${recipeId}/steps/${stepIndex}/${nextIndex}.${extension}`;
+      const storagePath = `${this.recipesColName}/${recipeId}/steps/${stepIndex}/${nextIndex}.${extension}`;
 
       await this.uploadFile(bucket, storagePath, file);
 
@@ -207,7 +410,7 @@ export class FirebaseRecipesRepository implements RecipesRepository {
 
     if (thumbnailFile) {
       const extension = this.resolveFileExtension(thumbnailFile);
-      const storagePath = `${this.collection}/${recipeId}/thumbnail.${extension}`;
+      const storagePath = `${this.recipesColName}/${recipeId}/thumbnail.${extension}`;
       await this.uploadFile(bucket, storagePath, thumbnailFile);
       thumbnailPath = storagePath;
     } else {
@@ -280,4 +483,5 @@ export class FirebaseRecipesRepository implements RecipesRepository {
       Object.entries(value).filter(([, entry]) => entry !== undefined),
     ) as Partial<UpdateRecipeDto>;
   }
+  // #endregion
 }

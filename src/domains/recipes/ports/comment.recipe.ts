@@ -4,7 +4,7 @@ import { Comment } from '../entities/comment.entity';
 
 export interface CommentRepository {
   createComment(data: CreateCommentDto): Promise<Comment>;
-  findOwnComments(authorId: string): Promise<Comment[] | null>;
+  findCommentsByUser(authorId: string): Promise<Comment[] | null>;
   findCommentsByRecipe(recipeId: string): Promise<Comment[] | null>;
   updateComment(authorId: string, data: UpdateCommentDto): Promise<Comment>;
   deleteComment(

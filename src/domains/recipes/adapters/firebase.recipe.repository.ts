@@ -158,11 +158,17 @@ export class FirebaseRecipesRepository
   // #endregion
 
   // #region Comment
+  /**
+   * 댓글을 생성합니다.
+   * @param input
+   * @returns
+   */
   async createComment(input: CreateCommentDto): Promise<Comment> {
     const db = getFirestore();
     const recipeRef = db.collection(this.recipesColName).doc(input.recipeId);
     const commentRef = recipeRef.collection(this.commentsColName).doc();
 
+    // 댓글 생성과 Recipe의 댓글 수 증가 - 하나라도 실패 시 롤백
     const batch = db.batch();
     batch.set(commentRef, {
       recipeId: input.recipeId,
@@ -177,7 +183,6 @@ export class FirebaseRecipesRepository
     });
     batch.update(recipeRef, {
       'stats.comment': admin.firestore.FieldValue.increment(1),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
     await batch.commit();
@@ -186,11 +191,16 @@ export class FirebaseRecipesRepository
     return this.mapSnapshotForComment(snapshot);
   }
 
-  async findOwnComments(authorId: string): Promise<Comment[] | null> {
+  /**
+   * 댓글 작성자 기준으로 댓글 정보를
+   * @param userId
+   * @returns
+   */
+  async findCommentsByUser(userId: string): Promise<Comment[] | null> {
     const db = getFirestore();
     const snapshot = await db
       .collectionGroup(this.commentsColName)
-      .where('authorId', '==', authorId)
+      .where('authorId', '==', userId)
       .orderBy('createdAt', 'desc')
       .limit(50)
       .get();

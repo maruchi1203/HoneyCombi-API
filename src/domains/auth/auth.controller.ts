@@ -20,8 +20,8 @@ export class AuthController {
     @Inject(AUTH_OAUTH_PROVIDERS)
     private readonly oauthProviders: Record<string, OAuthProvider>,
     private readonly loginUseCase: LoginUseCase,
-    private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly logoutUseCase: LogoutUseCase,
+    private readonly refreshTokenUseCase: RefreshTokenUseCase,
   ) {}
 
   @Get(':provider')

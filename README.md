@@ -25,6 +25,44 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Features
+
+### Health
+- `GET /health`
+
+### Auth
+- `GET /auth/:provider`
+- `GET /auth/:provider/callback`
+- `POST /auth/refresh`
+- `POST /auth/logout`
+
+### Users
+- `POST /users`
+- `GET /users/:userId`
+- `PATCH /users/:userId`
+- `DELETE /users/:userId`
+
+### Recipes
+- `POST /recipes`
+- `GET /recipes`
+- `GET /recipes/:recipeId`
+- `PATCH /recipes/:recipeId`
+- `DELETE /recipes/:recipeId`
+
+### Comments
+- `POST /recipes/:recipeId/comments`
+- `GET /recipes/comments/user/:authorId`
+- `PATCH /recipes/:recipeId/comments/:commentId`
+- `DELETE /recipes/:recipeId/comments/:commentId`
+
+### Moderation (currently in code)
+- `POST /moderation/reports`
+- `GET /moderation/reports`
+- `POST /moderation/reports/:reportId/resolve`
+- `POST /moderation/blocks`
+- `GET /moderation/blocks`
+- `POST /moderation/blocks/:blockId/release`
+
 ## Project setup
 
 ```bash

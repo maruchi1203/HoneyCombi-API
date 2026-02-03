@@ -29,13 +29,13 @@ export class RecipesUseCase {
     return items;
   }
 
-  findOneFullRecipe(recipeId: string) {
+  findFullRecipe(recipeId: string) {
     const result = this.recipeRepository.findFullRecipe(recipeId);
 
     return result;
   }
 
-  updateOneFullRecipe(recipeId: string, updatePostDto: UpdateRecipeDto) {
+  updateFullRecipe(recipeId: string, updatePostDto: UpdateRecipeDto) {
     const result = this.recipeRepository.updateFullRecipe(
       recipeId,
       updatePostDto,

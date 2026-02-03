@@ -10,19 +10,35 @@ import {
   BadRequestException,
   UploadedFiles,
   UseInterceptors,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { Request } from 'express';
 import { UpdateRecipeDto } from './dto/update-recipe.dto';
 import { RecipeStepDto } from './dto/recipe-step.dto';
 import { RecipesUseCase as RecipeUseCase } from './usecases/recipe.usecase';
 import { CreateRecipeDto, CreateRecipeInput } from './dto/create-recipe.dto';
 import { RecipeListQueryDto } from './dto/recipe-list-query.dto';
+import { CommentUseCase } from './usecases/comment.usecase';
+import { CreateCommentDto } from './dto/create-comment.dto';
+import { UpdateCommentDto } from './dto/update-comment.dto';
+import { AuthGuard } from '../../common/guards/auth.guard';
 
 @Controller('recipes')
 export class RecipesController {
-  constructor(private readonly recipeUseCase: RecipeUseCase) {}
+  constructor(
+    private readonly recipeUseCase: RecipeUseCase,
+    private readonly commentUseCase: CommentUseCase,
+  ) {}
 
+  /**
+   * 꿀조합 레시피를 생성하여 저장소에 저장합니다
+   * @param body
+   * @param files
+   * @returns
+   */
   @Post()
   @UseInterceptors(
     AnyFilesInterceptor({
@@ -38,30 +54,128 @@ export class RecipesController {
     return this.recipeUseCase.createRecipe(createRecipeDto, files);
   }
 
+  /**
+   *
+   * @param query
+   * @returns
+   */
   @Get()
   findMultipleRecipes(@Query() query: RecipeListQueryDto) {
     const result = this.recipeUseCase.findRecipeListItems(query);
     return result;
   }
 
+  /**
+   *
+   * @param recipeId
+   * @returns
+   */
   @Get(':recipeId')
-  findOneFullRecipe(@Param('recipeId') recipeId: string) {
-    return this.recipeUseCase.findOneFullRecipe(recipeId);
+  findFullRecipe(@Param('recipeId') recipeId: string) {
+    return this.recipeUseCase.findFullRecipe(recipeId);
   }
 
+  /**
+   *
+   * @param recipeId
+   * @param updatePostDto
+   * @returns
+   */
   @Patch(':recipeId')
   updateRecipe(
     @Param('recipeId') recipeId: string,
     @Body() updatePostDto: UpdateRecipeDto,
   ) {
-    return this.recipeUseCase.updateOneFullRecipe(recipeId, updatePostDto);
+    return this.recipeUseCase.updateFullRecipe(recipeId, updatePostDto);
   }
 
+  /**
+   *
+   * @param recipeId
+   * @returns
+   */
   @Delete(':recipeId')
   deleteRecipe(@Param('recipeId') recipeId: string) {
     return this.recipeUseCase.deleteRecipe(recipeId);
   }
 
+  /**
+   *
+   * @param recipeId
+   * @param body
+   * @param req
+   * @returns
+   */
+  @Post(':recipeId/comments')
+  @UseGuards(AuthGuard) // 권한 점검
+  createComment(
+    @Param('recipeId') recipeId: string,
+    @Body() body: CreateCommentDto,
+    @Req() req: Request & { user?: { id?: string } },
+  ) {
+    const authorId = req.user?.id ?? '';
+    const payload: CreateCommentDto = {
+      recipeId,
+      authorId,
+      text: body.text,
+    };
+    return this.commentUseCase.createComment(payload);
+  }
+
+  /**
+   *
+   * @param authorId
+   * @returns
+   */
+  @Get('comments/user/:authorId')
+  findCommentsByUser(@Param('authorId') authorId: string) {
+    return this.commentUseCase.findCommentsByUser(authorId);
+  }
+
+  /**
+   *
+   * @param recipeId
+   * @param commentId
+   * @param body
+   * @param req 필요
+   * @returns
+   */
+  @Patch(':recipeId/comments/:commentId')
+  @UseGuards(AuthGuard)
+  updateComment(
+    @Param('recipeId') recipeId: string,
+    @Param('commentId') commentId: string,
+    @Body() body: UpdateCommentDto,
+    @Req() req: Request & { user?: { id?: string } },
+  ) {
+    const authorId = req.user?.id ?? '';
+    const payload: UpdateCommentDto = {
+      recipeId,
+      commentId,
+      text: body.text,
+    };
+    return this.commentUseCase.updateComment(authorId, payload);
+  }
+
+  /**
+   *
+   * @param recipeId
+   * @param commentId
+   * @param req
+   * @returns
+   */
+  @Delete(':recipeId/comments/:commentId')
+  @UseGuards(AuthGuard)
+  deleteComment(
+    @Param('recipeId') recipeId: string,
+    @Param('commentId') commentId: string,
+    @Req() req: Request & { user?: { id?: string } },
+  ) {
+    const authorId = req.user?.id ?? '';
+    return this.commentUseCase.deleteComment(authorId, recipeId, commentId);
+  }
+
+  // #region private
   private parseCreateRecipeBody(body: CreateRecipeInput): CreateRecipeDto {
     if (!body) {
       throw new BadRequestException('request body is required');
@@ -186,13 +300,15 @@ export class RecipesController {
       const parsed = JSON.parse(trimmed);
       return Array.isArray(parsed) ? parsed : [String(parsed)];
     } catch (error) {
-      const normalized = trimmed.startsWith('[') && trimmed.endsWith(']')
-        ? trimmed.slice(1, -1)
-        : trimmed;
+      const normalized =
+        trimmed.startsWith('[') && trimmed.endsWith(']')
+          ? trimmed.slice(1, -1)
+          : trimmed;
       return normalized
         .split(',')
         .map((item) => item.trim())
         .filter(Boolean);
     }
   }
+  // #endregion
 }

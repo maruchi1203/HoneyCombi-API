@@ -1,6 +1,7 @@
 import admin from 'firebase-admin';
 import { getStorage } from 'firebase-admin/storage';
 import type { Bucket } from '@google-cloud/storage';
+import fs from 'node:fs';
 
 let firebaseApp: admin.app.App | null = null;
 let firestoreInstance: admin.firestore.Firestore | null = null;
@@ -8,9 +9,14 @@ let firestoreInstance: admin.firestore.Firestore | null = null;
 function loadServiceAccount(): admin.ServiceAccount {
   const rawInput = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (!rawInput) {
-    throw new Error(
-      'FIREBASE_SERVICE_ACCOUNT or FIREBASE_SERVICE_ACCOUNT_PATH is required',
-    );
+    const path = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+    if (!path) {
+      throw new Error(
+        'FIREBASE_SERVICE_ACCOUNT or FIREBASE_SERVICE_ACCOUNT_PATH is required',
+      );
+    }
+    const fileContent = fs.readFileSync(path, 'utf8');
+    return JSON.parse(fileContent) as admin.ServiceAccount;
   }
 
   let raw = rawInput.trim();

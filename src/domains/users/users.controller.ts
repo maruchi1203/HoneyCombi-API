@@ -8,7 +8,7 @@ export class UsersController {
   constructor(private readonly usersUseCase: UsersUseCase) {}
 
   @Post()
-  create(@Body() createUserDto: RegisterUserDto) {
+  register(@Body() createUserDto: RegisterUserDto) {
     return this.usersUseCase.register(createUserDto);
   }
 
@@ -18,7 +18,10 @@ export class UsersController {
   }
 
   @Patch(':userId')
-  updateUserInfo(@Param('userId') userId: string, @Body() updateUserInfoDto: UpdateUserDto) {
+  updateUserInfo(
+    @Param('userId') userId: string,
+    @Body() updateUserInfoDto: UpdateUserDto,
+  ) {
     return this.usersUseCase.update(userId, updateUserInfoDto);
   }
 

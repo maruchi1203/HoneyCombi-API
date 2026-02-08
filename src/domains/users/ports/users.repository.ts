@@ -4,7 +4,10 @@ import { User } from '../entities/user.entity';
 
 export interface UsersRepository {
   register(data: RegisterUserDto): Promise<User>;
+
   findOne(id: string): Promise<User | null>;
+
   update(id: string, data: UpdateUserDto): Promise<User>;
+
   unregister(id: string): Promise<void>;
 }

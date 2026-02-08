@@ -1,3 +1,3 @@
-export interface UserTokensRepository {
+export interface UserTokensPort {
   saveTokens(userId: string, refreshToken: string): Promise<void>;
 }

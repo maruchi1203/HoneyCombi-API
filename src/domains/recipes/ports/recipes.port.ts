@@ -3,7 +3,7 @@ import { UpdateRecipeDto } from '../dto/update-recipe.dto';
 import { RecipeListItem } from '../entities/recipe.list-item.entity';
 import { Recipe } from '../entities/recipe.entity';
 
-export interface RecipesRepository {
+export interface RecipesPort {
   createRecipe(
     input: CreateRecipeDto,
     files?: Express.Multer.File[],

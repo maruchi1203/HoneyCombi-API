@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { RegisterUserDto } from '../dto/register.user.dto';
 import { UpdateUserDto } from '../dto/update-info.user.dto';
 import { User } from '../entities/user.entity';
-import { UsersRepository } from '../ports/users.repository';
+import { UsersPort } from '../ports/users.port';
 
 @Injectable()
-export class FirebaseUsersRepository implements UsersRepository {
+export class FirebaseUsersRepository implements UsersPort {
   async register(data: RegisterUserDto): Promise<User> {
     return { id: 'firebase-user-id', ...data };
   }

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { createClient, type RedisClientType } from 'redis';
-import { UserTokensRepository } from '../ports/tokens.repository';
+import { UserTokensPort } from '../ports/tokens.port';
 
 @Injectable()
-export class RedisUserTokensRepository implements UserTokensRepository {
+export class RedisUserTokensRepository implements UserTokensPort {
   private readonly client: RedisClientType;
   private readonly ready: Promise<any>;
   private readonly ttlSeconds: number | null;

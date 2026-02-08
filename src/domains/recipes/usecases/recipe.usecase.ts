@@ -2,14 +2,14 @@ import { Injectable, Inject } from '@nestjs/common';
 import { CreateRecipeDto } from '../dto/create-recipe.dto';
 import { RecipeListQueryDto } from '../dto/recipe-list-query.dto';
 import { UpdateRecipeDto } from '../dto/update-recipe.dto';
-import type { RecipesRepository } from '../ports/repository.recipe';
+import type { RecipesPort } from '../ports/recipes.port';
 import { RECIPE_REPOSITORY } from '../recipe.tokens';
 
 @Injectable()
 export class RecipesUseCase {
   constructor(
     @Inject(RECIPE_REPOSITORY)
-    private readonly recipeRepository: RecipesRepository,
+    private readonly recipeRepository: RecipesPort,
   ) {}
 
   createRecipe(createPostDto: CreateRecipeDto, files?: Express.Multer.File[]) {

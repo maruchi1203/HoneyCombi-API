@@ -3,10 +3,10 @@ import { CreateRecipeDto } from '../dto/create-recipe.dto';
 import { UpdateRecipeDto } from '../dto/update-recipe.dto';
 import { Recipe } from '../entities/recipe.entity';
 import { RecipeListItem } from '../entities/recipe.list-item.entity';
-import { RecipesRepository } from '../ports/repository.recipe';
+import { RecipesPort } from '../ports/recipes.port';
 
 @Injectable()
-export class AwsRecipesRepository implements RecipesRepository {
+export class AwsRecipesRepository implements RecipesPort {
   async createRecipe(
     data: CreateRecipeDto,
     _files: Express.Multer.File[] = [],

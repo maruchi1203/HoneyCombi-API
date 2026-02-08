@@ -1,17 +1,17 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { RegisterUserDto } from '../dto/register.user.dto';
 import { UpdateUserDto as UpdateUserInfoDto } from '../dto/update-info.user.dto';
-import type { UsersRepository } from '../ports/users.repository';
-import type { UserTokensRepository } from '../ports/tokens.repository';
+import type { UsersPort } from '../ports/users.port';
+import type { UserTokensPort } from '../ports/tokens.port';
 import { USERS_REPOSITORY, USERS_TOKENS_REPOSITORY } from '../users.tokens';
 
 @Injectable()
 export class UsersUseCase {
   constructor(
     @Inject(USERS_REPOSITORY)
-    private readonly usersRepository: UsersRepository,
+    private readonly usersRepository: UsersPort,
     @Inject(USERS_TOKENS_REPOSITORY)
-    private readonly tokensRepository: UserTokensRepository,
+    private readonly tokensRepository: UserTokensPort,
   ) {}
 
   register(registerUserDto: RegisterUserDto) {

@@ -7,18 +7,16 @@ import {
 import { CreateRecipeDto } from '../dto/create-recipe.dto';
 import { UpdateRecipeDto } from '../dto/update-recipe.dto';
 import { Recipe } from '../entities/recipe.entity';
-import { RecipesRepository } from '../ports/repository.recipe';
+import { RecipesPort } from '../ports/recipes.port';
 import { RecipeListItem } from '../entities/recipe.list-item.entity';
 import { ImageDto } from '../../../common/dto/image.dto';
-import { CommentRepository } from '../ports/comment.recipe';
+import { CommentsPort } from '../ports/comments.port';
 import { CreateCommentDto } from '../dto/create-comment.dto';
 import { UpdateCommentDto } from '../dto/update-comment.dto';
 import { Comment } from '../entities/comment.entity';
 
 @Injectable()
-export class FirebaseRecipesRepository
-  implements RecipesRepository, CommentRepository
-{
+export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
   private readonly recipesColName = 'recipes';
   private readonly commentsColName = 'comments';
 

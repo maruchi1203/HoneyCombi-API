@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import type { CommentRepository } from '../ports/comment.recipe';
+import type { CommentsPort } from '../ports/comments.port';
 import { COMMENT_REPOSITORY } from '../recipe.tokens';
 import { CreateCommentDto } from '../dto/create-comment.dto';
 import { UpdateCommentDto } from '../dto/update-comment.dto';
@@ -8,7 +8,7 @@ import { UpdateCommentDto } from '../dto/update-comment.dto';
 export class CommentUseCase {
   constructor(
     @Inject(COMMENT_REPOSITORY)
-    private readonly commentRepository: CommentRepository,
+    private readonly commentRepository: CommentsPort,
   ) {}
 
   createComment(data: CreateCommentDto) {

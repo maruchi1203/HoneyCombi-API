@@ -16,14 +16,17 @@ import {
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { Request } from 'express';
-import { UpdateRecipeDto } from './dto/update-recipe.dto';
-import { RecipeStepDto } from './dto/recipe-step.dto';
+import {
+  CreateCommentDto,
+  CreateRecipeDto,
+  CreateRecipeInput,
+  RecipeListQueryDto,
+  RecipeStepDto,
+  UpdateCommentDto,
+  UpdateRecipeDto,
+} from './dto/index.dto';
 import { RecipesUseCase as RecipeUseCase } from './usecases/recipe.usecase';
-import { CreateRecipeDto, CreateRecipeInput } from './dto/create-recipe.dto';
-import { RecipeListQueryDto } from './dto/recipe-list-query.dto';
 import { CommentUseCase } from './usecases/comment.usecase';
-import { CreateCommentDto } from './dto/create-comment.dto';
-import { UpdateCommentDto } from './dto/update-comment.dto';
 import { AuthGuard } from '../../common/guards/auth.guard';
 
 @Controller('recipes')
@@ -55,7 +58,7 @@ export class RecipesController {
   }
 
   /**
-   *
+   * 스크롤메뉴용 레시피 정보를 저장소에서 가져옵니다
    * @param query
    * @returns
    */
@@ -64,6 +67,14 @@ export class RecipesController {
     const result = this.recipeUseCase.findRecipeListItems(query);
     return result;
   }
+
+  /**
+   * 스크롤메뉴용 레시피 정보 중 가장 인기가 좋은 Top10을 저장소에서 가져옵니다 (Redis 사용)
+   * @param query
+   * @returns
+   */
+  @Get('top')
+  findTopRankingRecipes(@Query() query: RecipeListQueryDto) {}
 
   /**
    *

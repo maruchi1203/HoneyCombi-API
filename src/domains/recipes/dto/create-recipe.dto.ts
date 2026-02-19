@@ -1,23 +1,23 @@
 import { RecipeStepDto } from './recipe-step.dto';
 
 export class CreateRecipeDto {
-  authorId: string;
-  title: string;
-  categories: string[];
+  authorId!: string;
+  title!: string;
+  categories!: string[];
   price?: number;
   summary?: string;
   thumbnailPath?: string;
 
-  steps: RecipeStepDto[];
+  steps!: RecipeStepDto[];
 }
 
 export class CreateRecipeInput {
-  authorId: string;
-  title: string;
-  categories: string[];
+  authorId!: string;
+  title!: string;
+  categories!: string[];
   price?: number;
   summary?: string;
   thumbnailPath?: string;
 
-  steps: string;
+  steps!: string;
 }

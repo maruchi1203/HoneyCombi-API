@@ -7,5 +7,5 @@ export class UpdateRecipeDto {
   categories?: string[];
   thumbnailPath?: string;
 
-  steps: RecipeStepDto[];
+  steps?: RecipeStepDto[];
 }

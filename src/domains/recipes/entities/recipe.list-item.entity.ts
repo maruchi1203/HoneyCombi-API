@@ -1,4 +1,4 @@
-export class RecipeListItem {
+export interface RecipeListItem {
   id: string;
   authorId: string;
   title: string;

@@ -1,6 +1,6 @@
 import { RecipeStepDto } from '../dto/recipe-step.dto';
 
-export class Recipe {
+export interface Recipe {
   id: string;
   authorId: string;
   title: string;

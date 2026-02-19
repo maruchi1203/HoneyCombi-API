@@ -7,11 +7,12 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 FROM deps AS dev
+
 ENV CHOKIDAR_USEPOLLING=1
 ENV CHOKIDAR_FORCE_POLLING=1
 ENV CHOKIDAR_INTERVAL=1000
-ENV TSC_WATCHFILE=UsePolling
-ENV TSC_WATCHDIRECTORY=UsePolling
+ENV TSC_WATCHFILE=fixedpollinginterval
+ENV TSC_WATCHDIRECTORY=fixedpollinginterval
 ENV WATCHPACK_POLLING=true
 CMD ["npm", "run", "start:dev:docker"]
 

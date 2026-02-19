@@ -1,4 +1,4 @@
 export class ResponseDTO {
-  success: boolean;
-  data: any;
+  success!: boolean;
+  data!: any;
 }

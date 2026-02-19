@@ -1,5 +1,5 @@
 export class ImageDto {
-  path: string; // Storage path (권장: 정본 키)
+  path!: string; // Storage path (권장: 정본 키)
   url?: string; // downloadURL (캐시/편의용)
   contentType?: string; // image/jpeg
   bytes?: number; // 파일 크기

@@ -1,5 +1,8 @@
 ﻿import { Injectable, Inject } from '@nestjs/common';
-import { UpdateUserDto as UpdateUserInfoDto } from '../dto/update-info.user.dto';
+import {
+  RegisterUserDto,
+  UpdateUserDto as UpdateUserInfoDto,
+} from '../dto/index.dto';
 import type { UsersPort } from '../ports/users.port';
 import { USERS_REPOSITORY } from '../users.tokens';
 
@@ -12,6 +15,11 @@ export class UsersUseCase {
 
   findUserInfo(userId: string) {
     const txnRes = this.usersRepository.findOne(userId);
+    return txnRes;
+  }
+
+  register(userId: string, registerUserDto: RegisterUserDto) {
+    const txnRes = this.usersRepository.register(userId, registerUserDto);
     return txnRes;
   }
 

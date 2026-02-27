@@ -1,4 +1,4 @@
-import { RecipeStepDto } from '../dto/recipe-step.dto';
+import { RecipeStepDto } from '../dto/index.dto';
 
 export interface Recipe {
   id: string;
@@ -21,5 +21,6 @@ export interface Recipe {
   createdAt: string;
   updatedAt?: string;
 }
+
 
 

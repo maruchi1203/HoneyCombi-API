@@ -52,7 +52,6 @@ export class RecipesController {
     @Body() body: CreateRecipeInput,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    console.log(body);
     const createRecipeDto = this.parseCreateRecipeBody(body);
     return this.recipeUseCase.createRecipe(createRecipeDto, files);
   }

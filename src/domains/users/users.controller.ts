@@ -6,8 +6,13 @@
   Delete,
   UseGuards,
   Body,
+  Post,
+  Req,
+  UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
-import type { UpdateUserDto } from './dto/index.dto';
+import type { Request } from 'express';
+import type { RegisterUserDto, UpdateUserDto } from './dto/index.dto';
 import { UsersUseCase } from './usecases/users.usecase';
 import { AuthGuard } from '../../common/guards/auth.guard';
 
@@ -18,6 +23,28 @@ export class UsersController {
   @Get(':userId')
   findOne(@Param('userId') userId: string) {
     return this.usersUseCase.findUserInfo(userId);
+  }
+
+  @Post('register')
+  @UseGuards(AuthGuard)
+  register(
+    @Body() body: RegisterUserDto,
+    @Req() req: Request & { user?: { id?: string } },
+  ) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('Invalid authentication context.');
+    }
+
+    const nickname = body.nickname?.trim();
+    if (!nickname) {
+      throw new BadRequestException('nickname is required.');
+    }
+
+    return this.usersUseCase.register(userId, {
+      nickname,
+      profileImgPath: body.profileImgPath,
+    });
   }
 
   @Patch(':userId')

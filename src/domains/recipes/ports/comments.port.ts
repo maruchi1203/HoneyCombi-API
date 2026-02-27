@@ -1,5 +1,5 @@
-import { CreateCommentDto } from '../dto/create-comment.dto';
-import { UpdateCommentDto } from '../dto/update-comment.dto';
+import { CreateCommentDto } from '../dto/index.dto';
+import { UpdateCommentDto } from '../dto/index.dto';
 import { Comment } from '../entities/comment.entity';
 
 export interface CommentsPort {
@@ -13,3 +13,4 @@ export interface CommentsPort {
     commentId: string,
   ): Promise<void>;
 }
+

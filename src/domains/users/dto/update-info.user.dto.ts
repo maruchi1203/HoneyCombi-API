@@ -1,4 +1,4 @@
-export class UpdateUserDto {
-  name?: string;
-  email?: string;
+﻿export class UpdateUserDto {
+  nickname?: string;
+  profileImgPath?: string;
 }

@@ -1,5 +1,5 @@
-﻿export class User {
-  id!: string;
+﻿export class RegisterUserDto {
+  id?: string;
   nickname!: string;
   profileImgPath?: string;
 }

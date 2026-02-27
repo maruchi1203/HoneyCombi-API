@@ -1,8 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
 import type { CommentsPort } from '../ports/comments.port';
 import { COMMENT_REPOSITORY } from '../recipe.tokens';
-import { CreateCommentDto } from '../dto/create-comment.dto';
-import { UpdateCommentDto } from '../dto/update-comment.dto';
+import { CreateCommentDto } from '../dto/index.dto';
+import { UpdateCommentDto } from '../dto/index.dto';
 
 @Injectable()
 export class CommentUseCase {
@@ -31,3 +31,4 @@ export class CommentUseCase {
     return this.commentRepository.deleteComment(authorId, recipeId, commentId);
   }
 }
+

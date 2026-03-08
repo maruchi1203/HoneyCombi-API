@@ -1,6 +1,6 @@
 # 편의점 꿀조합 레시피 백엔드 API
 
-![썸네일](https://github.com/user-attachments/assets/1fcf6130-e5c8-4cf0-9acc-b8d39cb8caef](https://github.com/user-attachments/assets/f7cb482e-fc68-4212-b375-4891b8aa3dc0)
+![썸네일](https://github.com/user-attachments/assets/1fcf6130-e5c8-4cf0-9acc-b8d39cb8caef)
 
 ## 프로젝트 환경
 

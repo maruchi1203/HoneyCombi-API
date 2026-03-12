@@ -5,35 +5,36 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  Index,
 } from 'typeorm';
-import { RecipeCommentOrmEntity } from './recipe-comment.orm-entity';
-import type { RecipeStepDto } from '../../dto/index.dto';
+import { RecipeCommentOrmEntity, RecipeStepOrmEntity } from '.';
 
-@Entity({ name: 'recipes' })
+@Entity({ name: 'Recipes' })
+@Index(['userId', 'createdAt'])
 export class RecipeOrmEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  @PrimaryGeneratedColumn('uuid', { name: 'recipe_id' })
+  recipeId!: string;
 
-  @Column({ name: 'author_id', type: 'varchar', length: 128 })
-  authorId!: string;
+  @Column({ name: 'user_id', type: 'text' })
+  userId!: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'text' })
   title!: string;
 
   @Column({ type: 'int', nullable: true })
   price?: number | null;
 
-  @Column({ type: 'text', array: true, default: () => "'{}'" })
-  categories!: string[];
+  @Column({ type: 'text', array: true, default: () => "'{}'", nullable: true })
+  categories?: string[];
+
+  @Column({ type: 'text', array: true, default: () => "'{}'", nullable: true })
+  ingredients?: string[];
 
   @Column({ type: 'text', nullable: true })
   summary?: string | null;
 
   @Column({ name: 'thumbnail_path', type: 'text', nullable: true })
   thumbnailPath?: string | null;
-
-  @Column({ type: 'jsonb', default: () => "'[]'" })
-  steps!: RecipeStepDto[];
 
   @Column({ name: 'stats_view', type: 'int', default: 0 })
   statsView!: number;
@@ -55,6 +56,9 @@ export class RecipeOrmEntity {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt!: Date;
+
+  @OneToMany(() => RecipeStepOrmEntity, (step) => step.recipe)
+  steps!: RecipeStepOrmEntity[];
 
   @OneToMany(() => RecipeCommentOrmEntity, (comment) => comment.recipe)
   comments?: RecipeCommentOrmEntity[];

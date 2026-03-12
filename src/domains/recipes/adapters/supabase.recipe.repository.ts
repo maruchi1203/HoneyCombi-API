@@ -1,30 +1,39 @@
 import {
+  ForbiddenException,
   Injectable,
   NotFoundException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import type { RecipesPort } from '../ports/recipes.port';
-import type { CommentsPort } from '../ports/comments.port';
-import { CreateRecipeDto } from '../dto/index.dto';
-import { UpdateRecipeDto } from '../dto/index.dto';
-import { Recipe } from '../entities/recipe.entity';
-import { RecipeListItem } from '../entities/recipe.list-item.entity';
-import { CreateCommentDto } from '../dto/index.dto';
-import { UpdateCommentDto } from '../dto/index.dto';
-import { Comment } from '../entities/comment.entity';
-import { RecipeOrmEntity } from './entities/recipe.orm-entity';
-import { RecipeCommentOrmEntity } from './entities/recipe-comment.orm-entity';
-import { S3StorageService } from '../../../common/storage/s3.storage.service';
-import { RedisCacheService } from '../../../common/cache/redis-cache.service';
+import { DataSource, Repository } from 'typeorm';
 import type { ImageDto } from '../../../common/dto/index.dto';
+import { RedisCacheService } from '../../../common/cache/redis-cache.service';
+import { S3StorageService } from '../../../common/storage/s3.storage.service';
+import { Comment } from '../entities/comment.entity';
+import { RecipeListItem } from '../entities/recipe.list-item.entity';
+import { RecipeStepEntity } from '../entities/recipe-step.entity';
+import { Recipe } from '../entities/recipe.entity';
+import {
+  CreateCommentDto,
+  CreateRecipeDto,
+  UpdateCommentDto,
+  UpdateRecipeDto,
+} from '../dto/index.dto';
+import type { CommentsPort } from '../ports/comments.port';
+import type { RecipesPort } from '../ports/recipes.port';
+import {
+  RecipeCommentOrmEntity,
+  RecipeOrmEntity,
+  RecipeStepOrmEntity,
+} from './orm';
 
 @Injectable()
-export class AwsRecipesRepository implements RecipesPort, CommentsPort {
+export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
   constructor(
+    private readonly dataSource: DataSource,
     @InjectRepository(RecipeOrmEntity)
     private readonly recipeRepo: Repository<RecipeOrmEntity>,
+    @InjectRepository(RecipeStepOrmEntity)
+    private readonly recipeStepRepo: Repository<RecipeStepOrmEntity>,
     @InjectRepository(RecipeCommentOrmEntity)
     private readonly commentRepo: Repository<RecipeCommentOrmEntity>,
     private readonly s3Storage: S3StorageService,
@@ -35,31 +44,37 @@ export class AwsRecipesRepository implements RecipesPort, CommentsPort {
     input: CreateRecipeDto,
     files: Express.Multer.File[] = [],
   ): Promise<Recipe> {
-    const draft = this.recipeRepo.create({
-      authorId: input.authorId,
+    const draftedRecipe = this.recipeRepo.create({
+      userId: input.authorId,
       title: input.title,
       price: input.price ?? null,
       categories: input.categories ?? [],
+      ingredients: input.ingredients ?? [],
       summary: input.summary ?? null,
       thumbnailPath: input.thumbnailPath ?? null,
-      steps: input.steps ?? [],
     });
 
-    const saved = await this.recipeRepo.save(draft);
+    const savedRecipe = await this.recipeRepo.save(draftedRecipe);
     const uploaded = await this.uploadRecipeImages(
-      saved.id,
-      saved.steps,
+      savedRecipe.recipeId,
+      input.steps ?? [],
       files,
     );
 
-    saved.steps = uploaded.steps;
-    saved.thumbnailPath = saved.thumbnailPath ?? uploaded.thumbnailPath ?? null;
+    await this.dataSource.transaction(async (manager) => {
+      savedRecipe.thumbnailPath =
+        savedRecipe.thumbnailPath ?? uploaded.thumbnailPath ?? null;
 
-    const updated = await this.recipeRepo.save(saved);
-    await this.cache.delByPrefix('recipes:list:');
-    await this.cache.delByPrefix(`recipes:detail:${updated.id}`);
+      await manager.getRepository(RecipeOrmEntity).save(savedRecipe);
+      await this.replaceRecipeSteps(
+        manager.getRepository(RecipeStepOrmEntity),
+        savedRecipe.recipeId,
+        uploaded.steps,
+      );
+    });
 
-    return this.mapRecipe(updated);
+    await this.invalidateRecipeCache(savedRecipe.recipeId);
+    return this.findOrFailRecipe(savedRecipe.recipeId);
   }
 
   async findRecipeListItems(
@@ -108,12 +123,13 @@ export class AwsRecipesRepository implements RecipesPort, CommentsPort {
       return cached;
     }
 
-    const row = await this.recipeRepo.findOne({ where: { id: recipeId } });
+    const row = await this.recipeRepo.findOne({ where: { recipeId } });
     if (!row) {
       return null;
     }
 
-    const mapped = this.mapRecipe(row);
+    const steps = await this.findRecipeSteps(recipeId);
+    const mapped = this.mapRecipe(row, steps);
     await this.cache.setJson(cacheKey, mapped, 180);
     return mapped;
   }
@@ -122,7 +138,7 @@ export class AwsRecipesRepository implements RecipesPort, CommentsPort {
     recipeId: string,
     data: UpdateRecipeDto,
   ): Promise<Recipe> {
-    const row = await this.recipeRepo.findOne({ where: { id: recipeId } });
+    const row = await this.recipeRepo.findOne({ where: { recipeId } });
     if (!row) {
       throw new NotFoundException('Recipe not found.');
     }
@@ -130,49 +146,67 @@ export class AwsRecipesRepository implements RecipesPort, CommentsPort {
     row.title = data.title ?? row.title;
     row.price = data.price ?? row.price;
     row.categories = data.categories ?? row.categories;
+    row.summary = data.content ?? row.summary;
     row.thumbnailPath = data.thumbnailPath ?? row.thumbnailPath;
-    row.steps = data.steps ?? row.steps;
 
-    const updated = await this.recipeRepo.save(row);
-    await this.cache.delByPrefix('recipes:list:');
-    await this.cache.delByPrefix(`recipes:detail:${recipeId}`);
+    await this.dataSource.transaction(async (manager) => {
+      await manager.getRepository(RecipeOrmEntity).save(row);
 
-    return this.mapRecipe(updated);
+      if (data.steps) {
+        await this.replaceRecipeSteps(
+          manager.getRepository(RecipeStepOrmEntity),
+          recipeId,
+          data.steps,
+        );
+      }
+    });
+
+    await this.invalidateRecipeCache(recipeId);
+    return this.findOrFailRecipe(recipeId);
   }
 
   async deleteRecipe(recipeId: string): Promise<void> {
-    await this.recipeRepo.delete({ id: recipeId });
-    await this.cache.delByPrefix('recipes:list:');
-    await this.cache.delByPrefix(`recipes:detail:${recipeId}`);
+    await this.dataSource.transaction(async (manager) => {
+      await manager.getRepository(RecipeStepOrmEntity).delete({ recipeId });
+      await manager.getRepository(RecipeCommentOrmEntity).delete({ recipeId });
+      await manager.getRepository(RecipeOrmEntity).delete({ recipeId });
+    });
+
+    await this.invalidateRecipeCache(recipeId);
   }
 
   async createComment(input: CreateCommentDto): Promise<Comment> {
     const recipe = await this.recipeRepo.findOne({
-      where: { id: input.recipeId },
+      where: { recipeId: input.recipeId },
     });
     if (!recipe) {
       throw new NotFoundException('Recipe not found.');
     }
 
-    const comment = this.commentRepo.create({
-      recipeId: input.recipeId,
-      authorId: input.authorId,
-      text: input.text,
+    const saved = await this.dataSource.transaction(async (manager) => {
+      const commentRepo = manager.getRepository(RecipeCommentOrmEntity);
+      const recipeRepo = manager.getRepository(RecipeOrmEntity);
+
+      const comment = commentRepo.create({
+        recipeId: input.recipeId,
+        userId: input.authorId,
+        text: input.text,
+      });
+
+      const nextComment = await commentRepo.save(comment);
+      recipe.statsComment += 1;
+      await recipeRepo.save(recipe);
+
+      return nextComment;
     });
 
-    const saved = await this.commentRepo.save(comment);
-    recipe.statsComment += 1;
-    await this.recipeRepo.save(recipe);
-
-    await this.cache.delByPrefix('recipes:list:');
-    await this.cache.delByPrefix(`recipes:detail:${input.recipeId}`);
-
+    await this.invalidateRecipeCache(input.recipeId);
     return this.mapComment(saved);
   }
 
   async findCommentsByUser(authorId: string): Promise<Comment[]> {
     const rows = await this.commentRepo.find({
-      where: { authorId },
+      where: { userId: authorId },
       order: { createdAt: 'DESC' },
       take: 50,
     });
@@ -195,13 +229,13 @@ export class AwsRecipesRepository implements RecipesPort, CommentsPort {
     data: UpdateCommentDto,
   ): Promise<Comment> {
     const row = await this.commentRepo.findOne({
-      where: { id: data.commentId, recipeId: data.recipeId },
+      where: { commentId: data.commentId, recipeId: data.recipeId },
     });
     if (!row) {
       throw new NotFoundException('Comment not found.');
     }
 
-    if (row.authorId !== authorId) {
+    if (row.userId !== authorId) {
       throw new ForbiddenException('Not allowed to update this comment.');
     }
 
@@ -218,37 +252,44 @@ export class AwsRecipesRepository implements RecipesPort, CommentsPort {
     commentId: string,
   ): Promise<void> {
     const row = await this.commentRepo.findOne({
-      where: { id: commentId, recipeId },
+      where: { commentId, recipeId },
     });
     if (!row) {
       return;
     }
 
-    if (row.authorId !== authorId) {
+    if (row.userId !== authorId) {
       throw new ForbiddenException('Not allowed to delete this comment.');
     }
 
-    await this.commentRepo.delete({ id: commentId });
+    await this.dataSource.transaction(async (manager) => {
+      await manager.getRepository(RecipeCommentOrmEntity).delete({ commentId });
 
-    const recipe = await this.recipeRepo.findOne({ where: { id: recipeId } });
-    if (recipe) {
-      recipe.statsComment = Math.max(0, recipe.statsComment - 1);
-      await this.recipeRepo.save(recipe);
-    }
+      const recipe = await manager
+        .getRepository(RecipeOrmEntity)
+        .findOne({ where: { recipeId } });
 
-    await this.cache.delByPrefix('recipes:list:');
-    await this.cache.delByPrefix(`recipes:detail:${recipeId}`);
+      if (recipe) {
+        recipe.statsComment = Math.max(0, recipe.statsComment - 1);
+        await manager.getRepository(RecipeOrmEntity).save(recipe);
+      }
+    });
+
+    await this.invalidateRecipeCache(recipeId);
   }
 
-  private mapRecipe(row: RecipeOrmEntity): Recipe {
+  private mapRecipe(
+    row: RecipeOrmEntity,
+    steps: RecipeStepOrmEntity[] = [],
+  ): Recipe {
     return {
-      id: row.id,
-      authorId: row.authorId,
+      id: row.recipeId,
+      authorId: row.userId,
       title: row.title,
       price: row.price ?? undefined,
       categories: row.categories ?? [],
       summary: row.summary ?? undefined,
-      steps: row.steps ?? [],
+      steps: this.mapRecipeSteps(steps),
       stats: {
         view: row.statsView,
         scrap: row.statsScrap,
@@ -263,8 +304,8 @@ export class AwsRecipesRepository implements RecipesPort, CommentsPort {
 
   private mapRecipeListItem(row: RecipeOrmEntity): RecipeListItem {
     return {
-      id: row.id,
-      authorId: row.authorId,
+      recipeId: row.recipeId,
+      userId: row.userId,
       title: row.title,
       price: row.price ?? undefined,
       categories: row.categories ?? [],
@@ -281,9 +322,9 @@ export class AwsRecipesRepository implements RecipesPort, CommentsPort {
 
   private mapComment(row: RecipeCommentOrmEntity): Comment {
     return {
-      id: row.id,
+      id: row.commentId,
       recipeId: row.recipeId,
-      authorId: row.authorId,
+      authorId: row.userId,
       text: row.text,
       stats: {
         good: row.statsGood,
@@ -308,7 +349,6 @@ export class AwsRecipesRepository implements RecipesPort, CommentsPort {
       ...step,
       image: [],
     }));
-
     const uploadedStepsImages: ImageDto[][] = stepsWithImages.map(() => []);
 
     for (const file of stepFiles) {
@@ -324,7 +364,6 @@ export class AwsRecipesRepository implements RecipesPort, CommentsPort {
       const storagePath = `recipes/${recipeId}/steps/${stepIndex}/${nextIndex}.${extension}`;
 
       await this.s3Storage.uploadBuffer(storagePath, file);
-
       uploadedStepsImages[stepIndex][nextIndex] = {
         path: storagePath,
         contentType: file.mimetype,
@@ -344,12 +383,85 @@ export class AwsRecipesRepository implements RecipesPort, CommentsPort {
       const storagePath = `recipes/${recipeId}/thumbnail.${extension}`;
       await this.s3Storage.uploadBuffer(storagePath, thumbnailFile);
       thumbnailPath = storagePath;
+    } else {
+      thumbnailPath = this.resolveDefaultThumbnailPath(normalizedSteps);
     }
 
     return {
       steps: normalizedSteps,
       thumbnailPath,
     };
+  }
+
+  private resolveDefaultThumbnailPath(steps: RecipeStepEntity[]) {
+    for (let index = steps.length - 1; index >= 0; index -= 1) {
+      const images = steps[index]?.image ?? [];
+      const last = images[images.length - 1];
+      if (last?.path) {
+        return last.path;
+      }
+    }
+
+    return null;
+  }
+
+  private async findRecipeSteps(recipeId: string) {
+    return this.recipeStepRepo.find({
+      where: { recipeId },
+      order: { order: 'ASC' },
+    });
+  }
+
+  private mapRecipeSteps(steps: RecipeStepOrmEntity[]): RecipeStepEntity[] {
+    return steps.map((step) => ({
+      order: step.order,
+      text: step.text,
+      image: step.imagePath
+        ? [
+            {
+              path: step.imagePath,
+              order: 0,
+            },
+          ]
+        : [],
+    }));
+  }
+
+  private async replaceRecipeSteps(
+    stepRepo: Repository<RecipeStepOrmEntity>,
+    recipeId: string,
+    steps: RecipeStepEntity[],
+  ) {
+    await stepRepo.delete({ recipeId });
+    if (!steps.length) {
+      return;
+    }
+
+    const rows = steps.map((step, index) =>
+      stepRepo.create({
+        recipeId: recipeId,
+        order: step.order ?? index,
+        text: step.text ?? '',
+        imagePath: step.image?.[0]?.path ?? null,
+      }),
+    );
+
+    await stepRepo.save(rows);
+  }
+
+  private async findOrFailRecipe(recipeId: string): Promise<Recipe> {
+    const row = await this.recipeRepo.findOne({ where: { recipeId } });
+    if (!row) {
+      throw new NotFoundException('Recipe not found.');
+    }
+
+    const steps = await this.findRecipeSteps(recipeId);
+    return this.mapRecipe(row, steps);
+  }
+
+  private async invalidateRecipeCache(recipeId: string) {
+    await this.cache.delByPrefix('recipes:list:');
+    await this.cache.delByPrefix(`recipes:detail:${recipeId}`);
   }
 
   private isStepImageField(fieldName: string) {

@@ -10,6 +10,7 @@
   Req,
   UnauthorizedException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import type { RegisterUserDto, UpdateUserDto } from './dto/index.dto';
@@ -31,10 +32,7 @@ export class UsersController {
     @Body() body: RegisterUserDto,
     @Req() req: Request & { user?: { id?: string } },
   ) {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw new UnauthorizedException('Invalid authentication context.');
-    }
+    const userId = this.getAuthenticatedUserId(req);
 
     const nickname = body.nickname?.trim();
     if (!nickname) {
@@ -52,13 +50,38 @@ export class UsersController {
   updateUserInfo(
     @Param('userId') userId: string,
     @Body() updateUserInfoDto: UpdateUserDto,
+    @Req() req: Request & { user?: { id?: string } },
   ) {
+    this.assertCurrentUser(userId, req);
     return this.usersUseCase.update(userId, updateUserInfoDto);
   }
 
   @Delete(':userId')
   @UseGuards(AuthGuard)
-  unregister(@Param('userId') userId: string) {
+  unregister(
+    @Param('userId') userId: string,
+    @Req() req: Request & { user?: { id?: string } },
+  ) {
+    this.assertCurrentUser(userId, req);
     return this.usersUseCase.unregister(userId);
+  }
+
+  private getAuthenticatedUserId(req: Request & { user?: { id?: string } }) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('Invalid authentication context.');
+    }
+
+    return userId;
+  }
+
+  private assertCurrentUser(
+    targetUserId: string,
+    req: Request & { user?: { id?: string } },
+  ) {
+    const currentUserId = this.getAuthenticatedUserId(req);
+    if (currentUserId !== targetUserId) {
+      throw new ForbiddenException('You can only modify your own account.');
+    }
   }
 }

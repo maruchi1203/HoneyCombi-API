@@ -1,4 +1,4 @@
-import { RecipeStepDto } from '../dto/index.dto';
+import { RecipeStepEntity } from './recipe-step.entity';
 
 export interface Recipe {
   id: string;
@@ -8,7 +8,7 @@ export interface Recipe {
   categories: string[];
   summary?: string;
 
-  steps: RecipeStepDto[];
+  steps: RecipeStepEntity[];
 
   stats: {
     view: number;
@@ -21,6 +21,3 @@ export interface Recipe {
   createdAt: string;
   updatedAt?: string;
 }
-
-
-

@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "honeycombi",
   "version": "0.0.2",
   "description": "",
@@ -14,34 +14,33 @@
     "start:prod": "node dist/main",
     "lint:test": "eslint \"{src,apps,libs,test}/**/*.ts\"",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test": "jest --config ./test/jest.json",
+    "test:watch": "jest --config ./test/jest.json --watch",
+    "test:cov": "jest --config ./test/jest.json --coverage",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --config ./test/jest.json --runInBand",
+    "test:e2e": "jest --config ./test/jest.json"
   },
   "dependencies": {
-    "@nestjs/common": "^11.0.1",
-    "@nestjs/core": "^11.0.1",
-    "@nestjs/platform-express": "^11.0.1",
+    "@aws-sdk/client-s3": "^3.760.0",
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/platform-express": "^11.1.6",
+    "@nestjs/typeorm": "^11.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "firebase-admin": "^12.7.0",
+    "ioredis": "^5.4.2",
+    "pg": "^8.13.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "typeorm": "^0.3.24",
-    "pg": "^8.13.1",
-    "@nestjs/typeorm": "^11.0.0",
-    "ioredis": "^5.4.2",
-    "@aws-sdk/client-s3": "^3.760.0"
+    "typeorm": "^0.3.24"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
-    "@google-cloud/storage": "^7.18.0",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
-    "@nestjs/testing": "^11.0.1",
+    "@nestjs/testing": "^11.1.6",
     "@types/express": "^5.0.0",
     "@types/gapi": "^0.0.47",
     "@types/jest": "^30.0.0",
@@ -65,24 +64,9 @@
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
   },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
-  },
   "overrides": {
+    "@tootallnate/once": "^3.0.0",
+    "file-type": "^21.0.0",
     "fast-xml-parser": "^5.3.4",
     "ajv": "^8.18.0",
     "minimatch": "^10.2.1"

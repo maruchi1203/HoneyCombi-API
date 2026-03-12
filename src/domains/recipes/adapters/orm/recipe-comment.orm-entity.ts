@@ -8,20 +8,20 @@
   JoinColumn,
   Index,
 } from 'typeorm';
-import { RecipeOrmEntity } from './recipe.orm-entity';
+import { RecipeOrmEntity } from '.';
 
-@Entity({ name: 'recipe_comments' })
+@Entity({ name: 'Comments' })
 @Index(['recipeId', 'createdAt'])
-@Index(['authorId', 'createdAt'])
+@Index(['userId', 'createdAt'])
 export class RecipeCommentOrmEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  @PrimaryGeneratedColumn('uuid', { name: 'comment_id' })
+  commentId!: string;
 
   @Column({ name: 'recipe_id', type: 'uuid' })
   recipeId!: string;
 
-  @Column({ name: 'author_id', type: 'varchar', length: 128 })
-  authorId!: string;
+  @Column({ name: 'user_id', type: 'text' })
+  userId!: string;
 
   @Column({ type: 'text' })
   text!: string;

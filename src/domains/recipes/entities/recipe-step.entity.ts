@@ -1,8 +1,9 @@
+import { Entity } from 'typeorm';
 import { ImageDto } from '../../../common/dto/index.dto';
 
-export class RecipeStepDto {
+@Entity()
+export class RecipeStepEntity {
   order!: number;
   text?: string;
   image?: ImageDto[];
 }
-

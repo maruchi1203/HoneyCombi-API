@@ -1,6 +1,6 @@
 export interface RecipeListItem {
-  id: string;
-  authorId: string;
+  recipeId: string;
+  userId: string;
   title: string;
   price?: number;
   categories: string[];

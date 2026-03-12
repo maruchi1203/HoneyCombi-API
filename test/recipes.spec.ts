@@ -1,61 +1,125 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { getDataSourceToken } from '@nestjs/typeorm';
 import request from 'supertest';
-import { RecipeModule } from '../src/domains/recipes/recipe.module';
+import { DataSource } from 'typeorm';
+import { AppModule } from '../src/app.module';
+import { AuthGuard } from '../src/common/guards/auth.guard';
+import {
+  RecipeCommentOrmEntity,
+  RecipeOrmEntity,
+  RecipeStepOrmEntity,
+} from '../src/domains/recipes/adapters/orm';
 
 jest.setTimeout(20000);
 
-describe('레시피 테스트 Suite', () => {
+describe('recipes suite', () => {
   let app: INestApplication;
+  let dataSource: DataSource;
   let recipeId = '';
-  const authorId = 'user-recipe-test';
+  const userId = 'test0';
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [RecipeModule],
-    }).compile();
+      imports: [AppModule],
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({
+        canActivate: (context: {
+          switchToHttp: () => {
+            getRequest: () => {
+              headers: Record<string, string | string[] | undefined>;
+              user?: { id?: string };
+            };
+          };
+        }) => {
+          const request = context.switchToHttp().getRequest();
+          const header = request.headers['x-user-id'];
+          const resolvedUserId = Array.isArray(header) ? header[0] : header;
+          request.user = { id: resolvedUserId };
+          return true;
+        },
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    dataSource = app.get<DataSource>(getDataSourceToken());
   });
 
   afterAll(async () => {
+    if (recipeId) {
+      await dataSource
+        .getRepository(RecipeCommentOrmEntity)
+        .delete({ recipeId });
+      await dataSource.getRepository(RecipeStepOrmEntity).delete({ recipeId });
+      await dataSource.getRepository(RecipeOrmEntity).delete({ recipeId });
+    }
+
     await app.close();
   });
 
-  it('레시피 생성', async () => {
+  it('creates a recipe', async () => {
     const response = await request(app.getHttpServer())
       .post('/recipes')
-      .set('x-user-id', authorId)
+      .set('x-user-id', userId)
       .send({
-        authorId,
-        title: '레시피 테스트 제목',
+        authorId: userId,
+        title: 'recipe test title',
         categories: ['A', 'B', 'C'],
+        ingredients: ['egg', 'milk'],
         price: 12345,
-        summary: '레시피 테스트 요약',
-        steps: '[]',
+        summary: 'recipe test summary',
+        steps: JSON.stringify([
+          { order: 0, text: 'step 1', image: [] },
+          { order: 1, text: 'step 2', image: [] },
+        ]),
       })
       .expect(201);
 
     recipeId = response.body?.id ?? '';
+
     expect(recipeId).toBeTruthy();
+    expect(response.body).toMatchObject({
+      authorId: userId,
+      title: 'recipe test title',
+      categories: ['A', 'B', 'C'],
+      summary: 'recipe test summary',
+    });
+    expect(response.body.steps).toHaveLength(2);
   });
 
-  it('레시피 수정', async () => {
-    await request(app.getHttpServer())
+  it('updates a recipe', async () => {
+    const response = await request(app.getHttpServer())
       .patch(`/recipes/${recipeId}`)
-      .set('x-user-id', authorId)
+      .set('x-user-id', userId)
       .send({
-        title: '레시피 테스트 수정 후 제목',
-        summary: '레시피 테스트 수정 후 요약',
+        title: 'recipe updated title',
+        content: 'recipe updated summary',
+        steps: [{ order: 0, text: 'updated step', image: [] }],
       })
       .expect(200);
+
+    expect(response.body).toMatchObject({
+      id: recipeId,
+      title: 'recipe updated title',
+      summary: 'recipe updated summary',
+    });
+    expect(response.body.steps).toHaveLength(1);
+    expect(response.body.steps[0].text).toBe('updated step');
   });
 
-  it('레시피 삭제', async () => {
+  it('deletes a recipe', async () => {
     await request(app.getHttpServer())
       .delete(`/recipes/${recipeId}`)
-      .set('x-user-id', authorId)
+      .set('x-user-id', userId)
       .expect(200);
+
+    const deleted = await dataSource
+      .getRepository(RecipeOrmEntity)
+      .findOne({ where: { recipeId } });
+
+    expect(deleted).toBeNull();
+    recipeId = '';
   });
 });

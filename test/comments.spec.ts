@@ -1,75 +1,81 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import { getDataSourceToken } from '@nestjs/typeorm';
 import request from 'supertest';
-import admin from 'firebase-admin';
-import { RecipeModule } from '../src/domains/recipes/recipe.module';
+import { DataSource } from 'typeorm';
+import { AppModule } from '../src/app.module';
+import { AuthGuard } from '../src/common/guards/auth.guard';
 import {
-  getFirebaseApp,
-  getFirestore,
-} from '../src/common/firebase/firebase-admin';
+  RecipeCommentOrmEntity,
+  RecipeOrmEntity,
+  RecipeStepOrmEntity,
+} from '../src/domains/recipes/adapters/orm';
 
 jest.setTimeout(20000);
 
-// describe : 여러 TestCase를 하나의 TestSuite로 묶는다
-describe('댓글 테스트 Suite', () => {
+describe('comments suite', () => {
   let app: INestApplication;
+  let dataSource: DataSource;
   let commentId = '';
-  const recipeId = `recipe-comments-test`;
-  const authorId = `user-comments-test`;
+  let recipeId = '';
+  const authorId = 'test0';
 
-  // 테스트 실행 전 설정
   beforeAll(async () => {
-    // RecipeModule에 한정해 모듈 생성 (전체 모듈로 하니 Jest와 TypeORM의 충돌 문제가 있었음)
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [RecipeModule],
-    }).compile();
+      imports: [AppModule],
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({
+        canActivate: (context: {
+          switchToHttp: () => {
+            getRequest: () => {
+              headers: Record<string, string | string[] | undefined>;
+              user?: { id?: string };
+            };
+          };
+        }) => {
+          const request = context.switchToHttp().getRequest();
+          const header = request.headers['x-user-id'];
+          const resolvedUserId = Array.isArray(header) ? header[0] : header;
+          request.user = { id: resolvedUserId };
+          return true;
+        },
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    dataSource = app.get<DataSource>(getDataSourceToken());
 
-    // 테스트할 데이터 준비
-    const db = getFirestore();
-    await db
-      .collection('recipes')
-      .doc(recipeId)
-      .set({
+    const response = await request(app.getHttpServer())
+      .post('/recipes')
+      .set('x-user-id', authorId)
+      .send({
         authorId,
-        title: 'e2e recipe',
+        title: 'comment test recipe',
         categories: [],
-        steps: [],
-        stats: {
-          view: 0,
-          scrap: 0,
-          good: 0,
-          bad: 0,
-          comment: 0,
-        },
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
+        ingredients: [],
+        summary: 'comment test summary',
+        steps: JSON.stringify([{ order: 0, text: 'step 1', image: [] }]),
+      })
+      .expect(201);
+
+    recipeId = response.body.id;
   });
 
-  // 테스트 실행 후 설정
   afterAll(async () => {
-    try {
-      const db = getFirestore();
-      const commentsRef = db
-        .collection('recipes')
-        .doc(recipeId)
-        .collection('comments');
-      const commentsSnapshot = await commentsRef.get();
-      const batch = db.batch();
-      commentsSnapshot.docs.forEach((doc) => batch.delete(doc.ref));
-      batch.delete(db.collection('recipes').doc(recipeId));
-      await batch.commit();
-    } finally {
-      await app.close();
-      const firebaseApp = getFirebaseApp();
-      await firebaseApp.delete();
+    if (recipeId) {
+      await dataSource
+        .getRepository(RecipeCommentOrmEntity)
+        .delete({ recipeId });
+      await dataSource.getRepository(RecipeStepOrmEntity).delete({ recipeId });
+      await dataSource.getRepository(RecipeOrmEntity).delete({ recipeId });
     }
+
+    await app.close();
   });
 
-  it('댓글 생성', async () => {
+  it('creates a comment', async () => {
     const response = await request(app.getHttpServer())
       .post(`/recipes/${recipeId}/comments`)
       .set('x-user-id', authorId)
@@ -85,35 +91,38 @@ describe('댓글 테스트 Suite', () => {
     commentId = response.body.id;
   });
 
-  it('유저 기반 댓글 검색', async () => {
+  it('finds comments by user', async () => {
     const response = await request(app.getHttpServer())
       .get(`/recipes/comments/user/${authorId}`)
       .expect(200);
 
     expect(Array.isArray(response.body)).toBe(true);
-    expect(response.body.length).toBe(1);
+    expect(
+      response.body.some((comment: { id: string }) => comment.id === commentId),
+    ).toBe(true);
   });
 
-  it('댓글 수정', async () => {
+  it('updates a comment', async () => {
     const response = await request(app.getHttpServer())
       .patch(`/recipes/${recipeId}/comments/${commentId}`)
       .set('x-user-id', authorId)
-      .send({ text: '수정된 댓글' })
+      .send({ text: 'updated comment' })
       .expect(200);
 
-    expect(response.body.text).toBe('수정된 댓글');
+    expect(response.body.text).toBe('updated comment');
   });
 
-  it('댓글 삭제', async () => {
+  it('deletes a comment', async () => {
     await request(app.getHttpServer())
       .delete(`/recipes/${recipeId}/comments/${commentId}`)
       .set('x-user-id', authorId)
       .expect(200);
 
-    const response = await request(app.getHttpServer())
-      .get(`/recipes/comments/user/${authorId}`)
-      .expect(200);
+    const deleted = await dataSource
+      .getRepository(RecipeCommentOrmEntity)
+      .findOne({ where: { commentId } });
 
-    expect(response.body.length).toBe(0);
+    expect(deleted).toBeNull();
+    commentId = '';
   });
 });

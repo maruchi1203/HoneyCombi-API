@@ -331,8 +331,8 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
     const data = snapshot.data() as Partial<RecipeListItem> | undefined;
 
     return {
-      id: snapshot.id,
-      authorId: data?.authorId ?? '',
+      recipeId: snapshot.id,
+      userId: data?.userId ?? '',
       title: data?.title ?? '',
       price: data?.price,
       categories: data?.categories ?? [],

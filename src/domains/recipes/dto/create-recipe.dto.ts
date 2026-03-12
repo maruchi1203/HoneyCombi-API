@@ -1,4 +1,4 @@
-import { RecipeStepDto } from './recipe-step.dto';
+import { RecipeStepEntity } from '../entities/recipe-step.entity';
 
 export class CreateRecipeDto {
   authorId!: string;
@@ -7,8 +7,9 @@ export class CreateRecipeDto {
   price?: number;
   summary?: string;
   thumbnailPath?: string;
+  ingredients!: string[];
 
-  steps!: RecipeStepDto[];
+  steps!: RecipeStepEntity[];
 }
 
 export class CreateRecipeInput {
@@ -18,6 +19,7 @@ export class CreateRecipeInput {
   price?: number;
   summary?: string;
   thumbnailPath?: string;
+  ingredients!: string[];
 
   steps!: string;
 }

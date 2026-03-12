@@ -4,36 +4,34 @@ import {
   getFirestore,
   getStorageBucket,
 } from '../../../common/firebase/firebase-admin';
-import { CreateRecipeDto } from '../dto/create-recipe.dto';
-import { UpdateRecipeDto } from '../dto/update-recipe.dto';
+import { CreateRecipeDto } from '../dto/index.dto';
+import { UpdateRecipeDto } from '../dto/index.dto';
 import { Recipe } from '../entities/recipe.entity';
-import { RecipesRepository } from '../ports/repository.recipe';
+import { RecipesPort } from '../ports/recipes.port';
 import { RecipeListItem } from '../entities/recipe.list-item.entity';
-import { ImageDto } from '../../../common/dto/image.dto';
-import { CommentRepository } from '../ports/comment.recipe';
-import { CreateCommentDto } from '../dto/create-comment.dto';
-import { UpdateCommentDto } from '../dto/update-comment.dto';
+import { ImageDto } from '../../../common/dto/index.dto';
+import { CommentsPort } from '../ports/comments.port';
+import { CreateCommentDto } from '../dto/index.dto';
+import { UpdateCommentDto } from '../dto/index.dto';
 import { Comment } from '../entities/comment.entity';
 
 @Injectable()
-export class FirebaseRecipesRepository
-  implements RecipesRepository, CommentRepository
-{
+export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
   private readonly recipesColName = 'recipes';
   private readonly commentsColName = 'comments';
 
   // #region Recipe
   /**
-   * 필요한 모든 정보를 전달받아 레시피를 생성합니다
-   * @param input 레시피 생성용 DTO
+   * 레시피 생성 요청을 받아 레시피 문서를 생성합니다.
+   * @param input 레시피 생성 DTO
    * @param files 업로드할 이미지 파일
-   * @returns 레시피
+   * @returns 생성된 레시피
    */
   async createRecipe(
     input: CreateRecipeDto,
     files: Express.Multer.File[] = [],
   ): Promise<Recipe> {
-    // 1. DB 연결 및 변수 설정
+    // 1. DB 연결 및 문서 참조 생성
     const db = getFirestore();
     const docRef = db.collection(this.recipesColName).doc();
     const recipeId = docRef.id;
@@ -46,7 +44,7 @@ export class FirebaseRecipesRepository
       files,
     );
 
-    // 3. 이미지 패스 설정
+    // 3. 이미지 경로 최종 설정
     const finalThumbnailPath =
       thumbnailPath ?? uploaded.thumbnailPath ?? undefined;
 
@@ -58,17 +56,17 @@ export class FirebaseRecipesRepository
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // 4. 스냅샷 반환
+    // 4. 결과 문서 반환
     const snapshot = await docRef.get();
     return this.mapSnapshotForRecipe(snapshot);
   }
 
   /**
-   * 간략화된 레시피 정보 배열을 반환합니다.
-   * @param cursor 검색 시작 기준
-   * @param sort 정렬 기준
-   * @param limit 검색할 레시피 수
-   * @returns 간략화된 레시피 정보 배열
+   * 레시피 목록을 정렬/커서 기준으로 조회합니다.
+   * @param cursor 검색 시작 기준값
+   * @param sort 정렬 기준값
+   * @param limit 조회할 레시피 수
+   * @returns 요약된 레시피 목록
    */
   async findRecipeListItems(
     cursor: string | undefined,
@@ -101,9 +99,9 @@ export class FirebaseRecipesRepository
   }
 
   /**
-   *
+   * 레시피 단건 상세 정보를 조회합니다.
    * @param recipeId
-   * @returns
+   * @returns 레시피 또는 null
    */
   async findFullRecipe(recipeId: string): Promise<Recipe | null> {
     const db = getFirestore();
@@ -120,10 +118,10 @@ export class FirebaseRecipesRepository
   }
 
   /**
-   * 아이디를 바탕으로 레시피 내용을 수정합니다
+   * 레시피의 전체 정보를 수정합니다.
    * @param recipeId
-   * @param data
-   * @returns
+   * @param data 수정할 레시피 데이터
+   * @returns 수정된 레시피
    */
   async updateFullRecipe(
     recipeId: string,
@@ -148,7 +146,7 @@ export class FirebaseRecipesRepository
   }
 
   /**
-   * 아이디를 바탕으로 레시피를 삭제합니다
+   * 레시피를 삭제합니다.
    * @param recipeId
    */
   async deleteRecipe(recipeId: string): Promise<void> {
@@ -160,15 +158,15 @@ export class FirebaseRecipesRepository
   // #region Comment
   /**
    * 댓글을 생성합니다.
-   * @param input
-   * @returns
+   * @param input 댓글 생성 DTO
+   * @returns 생성된 댓글
    */
   async createComment(input: CreateCommentDto): Promise<Comment> {
     const db = getFirestore();
     const recipeRef = db.collection(this.recipesColName).doc(input.recipeId);
     const commentRef = recipeRef.collection(this.commentsColName).doc();
 
-    // 댓글 생성과 Recipe의 댓글 수 증가 - 하나라도 실패 시 롤백
+    // 댓글 생성과 Recipe 댓글 수 증가를 하나의 배치로 처리
     const batch = db.batch();
     batch.set(commentRef, {
       recipeId: input.recipeId,
@@ -192,9 +190,9 @@ export class FirebaseRecipesRepository
   }
 
   /**
-   * 댓글 작성자 기준으로 댓글 정보를
+   * 특정 사용자가 작성한 댓글 목록을 조회합니다.
    * @param userId
-   * @returns
+   * @returns 댓글 목록
    */
   async findCommentsByUser(userId: string): Promise<Comment[] | null> {
     const db = getFirestore();
@@ -317,8 +315,8 @@ export class FirebaseRecipesRepository
         bad: data?.stats?.bad ?? 0,
         comment: data?.stats?.comment ?? 0,
       },
-      createdAt: data?.createdAt ?? '',
-      updatedAt: data?.updatedAt,
+      createdAt: this.toIsoDate(data?.createdAt),
+      updatedAt: this.toIsoDate(data?.updatedAt) || undefined,
     };
   }
 
@@ -333,8 +331,8 @@ export class FirebaseRecipesRepository
     const data = snapshot.data() as Partial<RecipeListItem> | undefined;
 
     return {
-      id: snapshot.id,
-      authorId: data?.authorId ?? '',
+      recipeId: snapshot.id,
+      userId: data?.userId ?? '',
       title: data?.title ?? '',
       price: data?.price,
       categories: data?.categories ?? [],
@@ -345,7 +343,7 @@ export class FirebaseRecipesRepository
         comment: data?.stats?.comment ?? 0,
         view: data?.stats?.view ?? 0,
       },
-      createdAt: data?.createdAt ?? '',
+      createdAt: this.toIsoDate(data?.createdAt),
     };
   }
 
@@ -364,8 +362,8 @@ export class FirebaseRecipesRepository
         good: data?.stats?.good ?? 0,
         bad: data?.stats?.bad ?? 0,
       },
-      createdAt: data?.createdAt ?? '',
-      updatedAt: data?.updatedAt,
+      createdAt: this.toIsoDate(data?.createdAt),
+      updatedAt: this.toIsoDate(data?.updatedAt) || undefined,
     };
   }
   // #endregion
@@ -493,5 +491,34 @@ export class FirebaseRecipesRepository
       Object.entries(value).filter(([, entry]) => entry !== undefined),
     ) as Partial<UpdateRecipeDto>;
   }
+
+  private toIsoDate(value: unknown) {
+    if (!value) {
+      return '';
+    }
+
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      'toDate' in value &&
+      typeof (value as { toDate?: unknown }).toDate === 'function'
+    ) {
+      return (
+        (value as { toDate: () => Date }).toDate?.()?.toISOString?.() ?? ''
+      );
+    }
+
+    return '';
+  }
   // #endregion
 }
+
+

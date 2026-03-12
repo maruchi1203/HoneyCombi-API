@@ -1,5 +1,5 @@
 export class UpdateCommentDto {
-  recipeId: string;
-  commentId: string;
-  text: string;
+  recipeId!: string;
+  commentId!: string;
+  text!: string;
 }

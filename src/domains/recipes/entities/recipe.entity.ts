@@ -1,6 +1,6 @@
-import { RecipeStepDto } from '../dto/recipe-step.dto';
+import { RecipeStepEntity } from './recipe-step.entity';
 
-export class Recipe {
+export interface Recipe {
   id: string;
   authorId: string;
   title: string;
@@ -8,7 +8,7 @@ export class Recipe {
   categories: string[];
   summary?: string;
 
-  steps: RecipeStepDto[];
+  steps: RecipeStepEntity[];
 
   stats: {
     view: number;
@@ -21,5 +21,3 @@ export class Recipe {
   createdAt: string;
   updatedAt?: string;
 }
-
-

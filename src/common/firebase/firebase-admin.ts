@@ -1,6 +1,5 @@
 import admin from 'firebase-admin';
 import { getStorage } from 'firebase-admin/storage';
-import type { Bucket } from '@google-cloud/storage';
 import fs from 'node:fs';
 
 let firebaseApp: admin.app.App | null = null;
@@ -66,7 +65,7 @@ export function getFirestore(): admin.firestore.Firestore {
   return firestore;
 }
 
-export function getStorageBucket(): Bucket {
+export function getStorageBucket() {
   const app = getFirebaseApp();
   const bucketName = process.env.FIREBASE_STORAGE_BUCKET;
   const storage = getStorage(app);
@@ -77,3 +76,4 @@ export function getStorageBucket(): Bucket {
 
   return storage.bucket();
 }
+

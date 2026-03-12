@@ -1,4 +1,5 @@
-export class RegisterUserDto {
-  name: string;
-  email: string;
+﻿export class RegisterUserDto {
+  id?: string;
+  nickname!: string;
+  profileImgPath?: string;
 }

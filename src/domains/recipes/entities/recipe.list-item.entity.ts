@@ -1,6 +1,6 @@
-export class RecipeListItem {
-  id: string;
-  authorId: string;
+export interface RecipeListItem {
+  recipeId: string;
+  userId: string;
   title: string;
   price?: number;
   categories: string[];

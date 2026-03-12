@@ -1,4 +1,4 @@
-import { RecipeStepDto } from './recipe-step.dto';
+import { RecipeStepEntity } from '../entities/recipe-step.entity';
 
 export class UpdateRecipeDto {
   title?: string;
@@ -7,5 +7,5 @@ export class UpdateRecipeDto {
   categories?: string[];
   thumbnailPath?: string;
 
-  steps: RecipeStepDto[];
+  steps?: RecipeStepEntity[];
 }

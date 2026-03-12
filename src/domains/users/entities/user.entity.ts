@@ -1,5 +1,5 @@
-export class User {
-  id: string;
-  name: string;
-  email: string;
+﻿export class User {
+  id!: string;
+  nickname!: string;
+  profileImgPath?: string;
 }

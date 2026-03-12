@@ -1,24 +1,25 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { RegisterUserDto } from '../dto/register.user.dto';
-import { UpdateUserDto as UpdateUserInfoDto } from '../dto/update-info.user.dto';
-import type { UsersRepository } from '../ports/users.repository';
+﻿import { Injectable, Inject } from '@nestjs/common';
+import {
+  RegisterUserDto,
+  UpdateUserDto as UpdateUserInfoDto,
+} from '../dto/index.dto';
+import type { UsersPort } from '../ports/users.port';
 import { USERS_REPOSITORY } from '../users.tokens';
 
 @Injectable()
 export class UsersUseCase {
   constructor(
     @Inject(USERS_REPOSITORY)
-    private readonly usersRepository: UsersRepository,
+    private readonly usersRepository: UsersPort,
   ) {}
-
-  register(registerUserDto: RegisterUserDto) {
-    const input = registerUserDto;
-    const txnRes = this.usersRepository.register(input);
-    return txnRes;
-  }
 
   findUserInfo(userId: string) {
     const txnRes = this.usersRepository.findOne(userId);
+    return txnRes;
+  }
+
+  register(userId: string, registerUserDto: RegisterUserDto) {
+    const txnRes = this.usersRepository.register(userId, registerUserDto);
     return txnRes;
   }
 

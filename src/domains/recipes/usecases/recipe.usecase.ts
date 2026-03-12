@@ -1,15 +1,15 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { CreateRecipeDto } from '../dto/create-recipe.dto';
-import { RecipeListQueryDto } from '../dto/recipe-list-query.dto';
-import { UpdateRecipeDto } from '../dto/update-recipe.dto';
-import type { RecipesRepository } from '../ports/repository.recipe';
+import { CreateRecipeDto } from '../dto/index.dto';
+import { RecipeListQueryDto } from '../dto/index.dto';
+import { UpdateRecipeDto } from '../dto/index.dto';
+import type { RecipesPort } from '../ports/recipes.port';
 import { RECIPE_REPOSITORY } from '../recipe.tokens';
 
 @Injectable()
 export class RecipesUseCase {
   constructor(
     @Inject(RECIPE_REPOSITORY)
-    private readonly recipeRepository: RecipesRepository,
+    private readonly recipeRepository: RecipesPort,
   ) {}
 
   createRecipe(createPostDto: CreateRecipeDto, files?: Express.Multer.File[]) {
@@ -60,3 +60,4 @@ export class RecipesUseCase {
     return Math.min(Math.floor(parsed), 100);
   }
 }
+

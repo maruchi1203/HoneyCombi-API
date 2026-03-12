@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Get,
   Post,
@@ -12,19 +12,25 @@ import {
   UseInterceptors,
   Req,
   UseGuards,
+  UnauthorizedException,
+  ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { Request } from 'express';
-import { UpdateRecipeDto } from './dto/update-recipe.dto';
-import { RecipeStepDto } from './dto/recipe-step.dto';
+import {
+  CreateCommentDto,
+  CreateRecipeDto,
+  CreateRecipeInput,
+  RecipeListQueryDto,
+  UpdateCommentDto,
+  UpdateRecipeDto,
+} from './dto/index.dto';
 import { RecipesUseCase as RecipeUseCase } from './usecases/recipe.usecase';
-import { CreateRecipeDto, CreateRecipeInput } from './dto/create-recipe.dto';
-import { RecipeListQueryDto } from './dto/recipe-list-query.dto';
 import { CommentUseCase } from './usecases/comment.usecase';
-import { CreateCommentDto } from './dto/create-comment.dto';
-import { UpdateCommentDto } from './dto/update-comment.dto';
 import { AuthGuard } from '../../common/guards/auth.guard';
+import { RecipeStepEntity } from './entities/recipe-step.entity';
 
 @Controller('recipes')
 export class RecipesController {
@@ -34,12 +40,10 @@ export class RecipesController {
   ) {}
 
   /**
-   * 꿀조합 레시피를 생성하여 저장소에 저장합니다
-   * @param body
-   * @param files
-   * @returns
+   * 레시피를 생성하여 저장소에 저장합니다.
    */
   @Post()
+  @UseGuards(AuthGuard)
   @UseInterceptors(
     AnyFilesInterceptor({
       storage: memoryStorage(),
@@ -47,73 +51,59 @@ export class RecipesController {
   )
   createRecipe(
     @Body() body: CreateRecipeInput,
-    @UploadedFiles() files?: Express.Multer.File[],
+    @UploadedFiles() files: Express.Multer.File[] = [],
+    @Req() req: Request & { user?: { id?: string } },
   ) {
-    console.log(body);
-    const createRecipeDto = this.parseCreateRecipeBody(body);
+    const currentUserId = this.getAuthenticatedUserId(req);
+    const createRecipeDto = this.parseCreateRecipeBody(body, currentUserId);
     return this.recipeUseCase.createRecipe(createRecipeDto, files);
   }
 
-  /**
-   *
-   * @param query
-   * @returns
-   */
   @Get()
   findMultipleRecipes(@Query() query: RecipeListQueryDto) {
     const result = this.recipeUseCase.findRecipeListItems(query);
     return result;
   }
 
-  /**
-   *
-   * @param recipeId
-   * @returns
-   */
+  @Get('top')
+  findTopRankingRecipes(@Query() query: RecipeListQueryDto) {}
+
   @Get(':recipeId')
   findFullRecipe(@Param('recipeId') recipeId: string) {
     return this.recipeUseCase.findFullRecipe(recipeId);
   }
 
-  /**
-   *
-   * @param recipeId
-   * @param updatePostDto
-   * @returns
-   */
   @Patch(':recipeId')
-  updateRecipe(
+  @UseGuards(AuthGuard)
+  async updateRecipe(
     @Param('recipeId') recipeId: string,
     @Body() updatePostDto: UpdateRecipeDto,
+    @Req() req: Request & { user?: { id?: string } },
   ) {
+    const currentUserId = this.getAuthenticatedUserId(req);
+    await this.assertRecipeOwner(recipeId, currentUserId);
     return this.recipeUseCase.updateFullRecipe(recipeId, updatePostDto);
   }
 
-  /**
-   *
-   * @param recipeId
-   * @returns
-   */
   @Delete(':recipeId')
-  deleteRecipe(@Param('recipeId') recipeId: string) {
+  @UseGuards(AuthGuard)
+  async deleteRecipe(
+    @Param('recipeId') recipeId: string,
+    @Req() req: Request & { user?: { id?: string } },
+  ) {
+    const currentUserId = this.getAuthenticatedUserId(req);
+    await this.assertRecipeOwner(recipeId, currentUserId);
     return this.recipeUseCase.deleteRecipe(recipeId);
   }
 
-  /**
-   *
-   * @param recipeId
-   * @param body
-   * @param req
-   * @returns
-   */
   @Post(':recipeId/comments')
-  @UseGuards(AuthGuard) // 권한 점검
+  @UseGuards(AuthGuard)
   createComment(
     @Param('recipeId') recipeId: string,
     @Body() body: CreateCommentDto,
     @Req() req: Request & { user?: { id?: string } },
   ) {
-    const authorId = req.user?.id ?? '';
+    const authorId = this.getAuthenticatedUserId(req);
     const payload: CreateCommentDto = {
       recipeId,
       authorId,
@@ -122,24 +112,11 @@ export class RecipesController {
     return this.commentUseCase.createComment(payload);
   }
 
-  /**
-   *
-   * @param authorId
-   * @returns
-   */
   @Get('comments/user/:authorId')
   findCommentsByUser(@Param('authorId') authorId: string) {
     return this.commentUseCase.findCommentsByUser(authorId);
   }
 
-  /**
-   *
-   * @param recipeId
-   * @param commentId
-   * @param body
-   * @param req 필요
-   * @returns
-   */
   @Patch(':recipeId/comments/:commentId')
   @UseGuards(AuthGuard)
   updateComment(
@@ -148,7 +125,7 @@ export class RecipesController {
     @Body() body: UpdateCommentDto,
     @Req() req: Request & { user?: { id?: string } },
   ) {
-    const authorId = req.user?.id ?? '';
+    const authorId = this.getAuthenticatedUserId(req);
     const payload: UpdateCommentDto = {
       recipeId,
       commentId,
@@ -157,13 +134,6 @@ export class RecipesController {
     return this.commentUseCase.updateComment(authorId, payload);
   }
 
-  /**
-   *
-   * @param recipeId
-   * @param commentId
-   * @param req
-   * @returns
-   */
   @Delete(':recipeId/comments/:commentId')
   @UseGuards(AuthGuard)
   deleteComment(
@@ -171,26 +141,31 @@ export class RecipesController {
     @Param('commentId') commentId: string,
     @Req() req: Request & { user?: { id?: string } },
   ) {
-    const authorId = req.user?.id ?? '';
+    const authorId = this.getAuthenticatedUserId(req);
     return this.commentUseCase.deleteComment(authorId, recipeId, commentId);
   }
 
   // #region private
-  private parseCreateRecipeBody(body: CreateRecipeInput): CreateRecipeDto {
+  private parseCreateRecipeBody(
+    body: CreateRecipeInput,
+    authorId: string,
+  ): CreateRecipeDto {
     if (!body) {
       throw new BadRequestException('request body is required');
     }
     const categories = this.parseStringArray(body.categories);
-    const steps = this.parseToRecipeStepDTO(body.steps);
+    const ingredients = this.parseStringArray(body.ingredients);
+    const steps = this.parseToRecipeStepEntity(body.steps);
     const price = this.parseNumber(body.price);
 
     return {
-      authorId: body.authorId,
+      authorId,
       title: body.title,
       categories,
       price,
       summary: body.summary,
       thumbnailPath: body.thumbnailPath,
+      ingredients,
       steps,
     };
   }
@@ -208,15 +183,15 @@ export class RecipesController {
     return parsed;
   }
 
-  private parseToRecipeStepDTO(
-    value?: RecipeStepDto[] | string,
-  ): RecipeStepDto[] {
+  private parseToRecipeStepEntity(
+    value?: RecipeStepEntity[] | string,
+  ): RecipeStepEntity[] {
     if (value === undefined || value === null || value === '') {
       return [];
     }
 
     if (typeof value !== 'string') {
-      return value as RecipeStepDto[];
+      return value as RecipeStepEntity[];
     }
 
     try {
@@ -236,7 +211,7 @@ export class RecipesController {
         throw new BadRequestException('steps must be an array');
       }
 
-      const steps = parsed as RecipeStepDto[];
+      const steps = parsed as RecipeStepEntity[];
       if (!Array.isArray(parsed)) {
         throw new BadRequestException('steps must be an array');
       }
@@ -308,6 +283,26 @@ export class RecipesController {
         .split(',')
         .map((item) => item.trim())
         .filter(Boolean);
+    }
+  }
+
+  private getAuthenticatedUserId(req: Request & { user?: { id?: string } }) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('Invalid authentication context.');
+    }
+
+    return userId;
+  }
+
+  private async assertRecipeOwner(recipeId: string, userId: string) {
+    const recipe = await this.recipeUseCase.findFullRecipe(recipeId);
+    if (!recipe) {
+      throw new NotFoundException('Recipe not found.');
+    }
+
+    if (recipe.authorId !== userId) {
+      throw new ForbiddenException('Not allowed to modify this recipe.');
     }
   }
   // #endregion

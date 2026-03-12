@@ -4,7 +4,7 @@
 ## 프로젝트 환경
 
 - Framework  : Nest.js
-- DB : Firebase -> AWS RDS(Postgresql) + AWS S3
+- DB : Firebase -> Supabase(Postgresql) + AWS S3
 - BE 배포 환경 : GCP Cloud Run
 
 ## 개발 목표
@@ -21,5 +21,5 @@
 - [ ] 유저 CRUD 로직 설계
 
 #### v0.2
-- [ ] 레시피 로직을 AWS RDS로 이전
+- [ ] 기존 로직을 Supabase + AWS S3로 이전
 - [ ] 인기 게시물과 이벤트에 대해 Redis 로직 적용

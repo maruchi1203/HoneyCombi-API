@@ -298,7 +298,9 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
   private mapSnapshotForRecipe(
     snapshot: admin.firestore.DocumentSnapshot,
   ): Recipe {
-    const data = snapshot.data() as Partial<Recipe> | undefined;
+    const data = snapshot.data() as
+      | (Partial<Recipe> & { thumbnailPath?: string })
+      | undefined;
 
     return {
       id: snapshot.id,
@@ -307,6 +309,7 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
       price: data?.price,
       categories: data?.categories ?? [],
       summary: data?.summary,
+      thumbnailUrl: data?.thumbnailUrl ?? data?.thumbnailPath,
       steps: data?.steps ?? [],
       stats: {
         view: data?.stats?.view ?? 0,

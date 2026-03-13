@@ -16,6 +16,28 @@ export async function firebaseAuthMiddleware(
   _res: Response,
   next: NextFunction,
 ) {
+  const allowDevHeaderAuth = process.env.ALLOW_DEV_AUTH_HEADER === 'true';
+  const devUserIdHeader = req.headers['x-user-id'];
+  const devUserEmailHeader = req.headers['x-user-email'];
+
+  if (allowDevHeaderAuth) {
+    const devUserId = Array.isArray(devUserIdHeader)
+      ? devUserIdHeader[0]
+      : devUserIdHeader;
+    const devUserEmail = Array.isArray(devUserEmailHeader)
+      ? devUserEmailHeader[0]
+      : devUserEmailHeader;
+
+    if (devUserId) {
+      req.user = {
+        ...(req.user ?? {}),
+        id: devUserId,
+        email: devUserEmail,
+      };
+      return next();
+    }
+  }
+
   const header = req.headers['authorization'];
   if (!header) {
     return next();

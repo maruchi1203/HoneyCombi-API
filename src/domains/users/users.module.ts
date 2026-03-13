@@ -4,17 +4,21 @@ import { UsersController } from './users.controller';
 import { USERS_REPOSITORY } from './users.tokens';
 import { UsersUseCase } from './usecases/users.usecase';
 import { FirebaseUsersRepository } from './adapters/firebase.users.repository';
-import { AwsUsersRepository } from './adapters/aws.users.repository';
+import { SupabaseUsersRepository } from './adapters/supabase.users.repository';
 import { UserOrmEntity } from './adapters/entities/user.orm-entity';
+import { S3StorageService } from '../../common/storage/s3.storage.service';
 
+// 
 const isAwsProvider = process.env.DATA_PROVIDER === 'aws';
 const usersRepositoryClass = isAwsProvider
-  ? AwsUsersRepository
+  ? SupabaseUsersRepository
   : FirebaseUsersRepository;
 
-const adapterImports = isAwsProvider ? [TypeOrmModule.forFeature([UserOrmEntity])] : [];
+const adapterImports = isAwsProvider
+  ? [TypeOrmModule.forFeature([UserOrmEntity])]
+  : [];
 const adapterProviders = isAwsProvider
-  ? [AwsUsersRepository]
+  ? [S3StorageService, SupabaseUsersRepository]
   : [FirebaseUsersRepository];
 
 @Module({

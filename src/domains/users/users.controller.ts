@@ -1,17 +1,21 @@
-﻿import {
-  Controller,
-  Get,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
+import {
+  BadRequestException,
   Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  Param,
+  Patch,
   Post,
   Req,
   UnauthorizedException,
-  BadRequestException,
-  ForbiddenException,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import type { Request } from 'express';
 import type { RegisterUserDto, UpdateUserDto } from './dto/index.dto';
 import { UsersUseCase } from './usecases/users.usecase';
@@ -28,9 +32,15 @@ export class UsersController {
 
   @Post('register')
   @UseGuards(AuthGuard)
+  @UseInterceptors(
+    FileInterceptor('profileImage', {
+      storage: memoryStorage(),
+    }),
+  )
   register(
     @Body() body: RegisterUserDto,
     @Req() req: Request & { user?: { id?: string } },
+    @UploadedFile() profileImage?: Express.Multer.File,
   ) {
     const userId = this.getAuthenticatedUserId(req);
 
@@ -39,21 +49,31 @@ export class UsersController {
       throw new BadRequestException('nickname is required.');
     }
 
-    return this.usersUseCase.register(userId, {
-      nickname,
-      profileImgPath: body.profileImgPath,
-    });
+    return this.usersUseCase.register(
+      userId,
+      {
+        nickname,
+        profileImgPath: body.profileImgPath,
+      },
+      profileImage,
+    );
   }
 
   @Patch(':userId')
   @UseGuards(AuthGuard)
+  @UseInterceptors(
+    FileInterceptor('profileImage', {
+      storage: memoryStorage(),
+    }),
+  )
   updateUserInfo(
     @Param('userId') userId: string,
     @Body() updateUserInfoDto: UpdateUserDto,
     @Req() req: Request & { user?: { id?: string } },
+    @UploadedFile() profileImage?: Express.Multer.File,
   ) {
     this.assertCurrentUser(userId, req);
-    return this.usersUseCase.update(userId, updateUserInfoDto);
+    return this.usersUseCase.update(userId, updateUserInfoDto, profileImage);
   }
 
   @Delete(':userId')

@@ -1,3 +1,4 @@
+import { IsOptional, IsString } from 'class-validator';
 import { RecipeStepEntity } from '../entities/recipe-step.entity';
 
 export class CreateRecipeDto {
@@ -8,18 +9,34 @@ export class CreateRecipeDto {
   summary?: string;
   thumbnailPath?: string;
   ingredients!: string[];
-
   steps!: RecipeStepEntity[];
 }
 
 export class CreateRecipeInput {
-  authorId!: string;
-  title!: string;
-  categories!: string[];
-  price?: number;
-  summary?: string;
-  thumbnailPath?: string;
-  ingredients!: string[];
+  @IsOptional()
+  @IsString()
+  authorId?: string;
 
-  steps!: string;
+  @IsString()
+  title!: string;
+
+  @IsOptional()
+  categories?: string[] | string;
+
+  @IsOptional()
+  price?: number | string;
+
+  @IsOptional()
+  @IsString()
+  summary?: string;
+
+  @IsOptional()
+  @IsString()
+  thumbnailPath?: string;
+
+  @IsOptional()
+  ingredients?: string[] | string;
+
+  @IsOptional()
+  steps?: RecipeStepEntity[] | string;
 }

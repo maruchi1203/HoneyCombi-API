@@ -18,13 +18,29 @@ export class UsersUseCase {
     return txnRes;
   }
 
-  register(userId: string, registerUserDto: RegisterUserDto) {
-    const txnRes = this.usersRepository.register(userId, registerUserDto);
+  register(
+    userId: string,
+    registerUserDto: RegisterUserDto,
+    profileImage?: Express.Multer.File,
+  ) {
+    const txnRes = this.usersRepository.register(
+      userId,
+      registerUserDto,
+      profileImage,
+    );
     return txnRes;
   }
 
-  update(userId: string, updateUserInfoDto: UpdateUserInfoDto) {
-    const txnRes = this.usersRepository.update(userId, updateUserInfoDto);
+  update(
+    userId: string,
+    updateUserInfoDto: UpdateUserInfoDto,
+    profileImage?: Express.Multer.File,
+  ) {
+    const txnRes = this.usersRepository.update(
+      userId,
+      updateUserInfoDto,
+      profileImage,
+    );
     return txnRes;
   }
 

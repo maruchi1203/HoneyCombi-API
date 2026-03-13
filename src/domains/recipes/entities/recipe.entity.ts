@@ -7,6 +7,7 @@ export interface Recipe {
   price?: number;
   categories: string[];
   summary?: string;
+  thumbnailUrl?: string;
 
   steps: RecipeStepEntity[];
 

@@ -110,7 +110,9 @@ export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
     }
 
     const rows = await qb.getMany();
-    const items = rows.map((row) => this.mapRecipeListItem(row));
+    const items = await Promise.all(
+      rows.map((row) => this.mapRecipeListItem(row)),
+    );
 
     await this.cache.setJson(cacheKey, items, 60);
     return items;
@@ -129,7 +131,7 @@ export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
     }
 
     const steps = await this.findRecipeSteps(recipeId);
-    const mapped = this.mapRecipe(row, steps);
+    const mapped = await this.mapRecipe(row, steps);
     await this.cache.setJson(cacheKey, mapped, 180);
     return mapped;
   }
@@ -281,14 +283,15 @@ export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
   private mapRecipe(
     row: RecipeOrmEntity,
     steps: RecipeStepOrmEntity[] = [],
-  ): Recipe {
-    return {
+  ): Promise<Recipe> {
+    return this.enrichRecipeUrls({
       id: row.recipeId,
       authorId: row.userId,
       title: row.title,
       price: row.price ?? undefined,
       categories: row.categories ?? [],
       summary: row.summary ?? undefined,
+      thumbnailUrl: row.thumbnailPath ?? undefined,
       steps: this.mapRecipeSteps(steps),
       stats: {
         view: row.statsView,
@@ -299,10 +302,10 @@ export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
       },
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt?.toISOString(),
-    };
+    });
   }
 
-  private mapRecipeListItem(row: RecipeOrmEntity): RecipeListItem {
+  private async mapRecipeListItem(row: RecipeOrmEntity): Promise<RecipeListItem> {
     return {
       recipeId: row.recipeId,
       userId: row.userId,
@@ -310,7 +313,10 @@ export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
       price: row.price ?? undefined,
       categories: row.categories ?? [],
       summary: row.summary ?? undefined,
-      thumbnailUrl: row.thumbnailPath ?? undefined,
+      thumbnailUrl:
+        (await this.s3Storage.getDownloadUrl(row.thumbnailPath)) ??
+        row.thumbnailPath ??
+        undefined,
       stats: {
         totalRate: row.statsGood - row.statsBad,
         comment: row.statsComment,
@@ -487,5 +493,30 @@ export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
     }
 
     return type.split('/')[1] ?? 'jpg';
+  }
+
+  private async enrichRecipeUrls(recipe: Recipe): Promise<Recipe> {
+    const thumbnailUrl = recipe.thumbnailUrl
+      ? (await this.s3Storage.getDownloadUrl(recipe.thumbnailUrl)) ??
+        recipe.thumbnailUrl
+      : undefined;
+
+    const steps = await Promise.all(
+      recipe.steps.map(async (step) => ({
+        ...step,
+        image: await Promise.all(
+          (step.image ?? []).map(async (image) => ({
+            ...image,
+            url: (await this.s3Storage.getDownloadUrl(image.path)) ?? image.url,
+          })),
+        ),
+      })),
+    );
+
+    return {
+      ...recipe,
+      thumbnailUrl,
+      steps,
+    };
   }
 }

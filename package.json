@@ -8,8 +8,8 @@
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start:dev": "tsc-watch --watchFile fixedpollinginterval --watchDirectory fixedpollinginterval --preserveWatchOutput --onSuccess \"node dist/main.js\"",
-    "start:dev:docker": "tsc-watch --watchFile fixedpollinginterval --watchDirectory fixedpollinginterval --preserveWatchOutput --onSuccess \"node dist/main.js\"",
+    "start:dev": "tsc-watch -p tsconfig.dev.json --watchFile fixedpollinginterval --watchDirectory fixedpollinginterval --preserveWatchOutput --onSuccess \"node dist/main.js\"",
+    "start:dev:docker": "tsc-watch -p tsconfig.dev.json --watchFile fixedpollinginterval --watchDirectory fixedpollinginterval --preserveWatchOutput --onSuccess \"node dist/main.js\"",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint:test": "eslint \"{src,apps,libs,test}/**/*.ts\"",
@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.760.0",
+    "@aws-sdk/s3-request-presigner": "^3.760.0",
     "@nestjs/common": "^11.1.6",
     "@nestjs/core": "^11.1.6",
     "@nestjs/platform-express": "^11.1.6",

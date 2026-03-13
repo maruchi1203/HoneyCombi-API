@@ -14,11 +14,13 @@ import {
 import { S3StorageService } from '../../common/storage/s3.storage.service';
 import { RedisCacheService } from '../../common/cache/redis-cache.service';
 
+// 모듈 선택
 const isAwsProvider = process.env.DATA_PROVIDER === 'aws';
 const recipesRepositoryClass = isAwsProvider
   ? SupabaseRecipesRepository
   : FirebaseRecipesRepository;
 
+  // 
 const adapterImports = isAwsProvider
   ? [
       TypeOrmModule.forFeature([

@@ -21,11 +21,14 @@ import { memoryStorage } from 'multer';
 import { Request } from 'express';
 import {
   CreateCommentDto,
+  CreateCommentInput,
   CreateRecipeDto,
   CreateRecipeInput,
   RecipeListQueryDto,
   UpdateCommentDto,
+  UpdateCommentInput,
   UpdateRecipeDto,
+  UpdateRecipeInput,
 } from './dto/index.dto';
 import { RecipesUseCase as RecipeUseCase } from './usecases/recipe.usecase';
 import { CommentUseCase } from './usecases/comment.usecase';
@@ -77,12 +80,13 @@ export class RecipesController {
   @UseGuards(AuthGuard)
   async updateRecipe(
     @Param('recipeId') recipeId: string,
-    @Body() updatePostDto: UpdateRecipeDto,
+    @Body() updatePostDto: UpdateRecipeInput,
     @Req() req: Request & { user?: { id?: string } },
   ) {
     const currentUserId = this.getAuthenticatedUserId(req);
     await this.assertRecipeOwner(recipeId, currentUserId);
-    return this.recipeUseCase.updateFullRecipe(recipeId, updatePostDto);
+    const parsedUpdateDto = this.parseUpdateRecipeBody(updatePostDto);
+    return this.recipeUseCase.updateFullRecipe(recipeId, parsedUpdateDto);
   }
 
   @Delete(':recipeId')
@@ -100,7 +104,7 @@ export class RecipesController {
   @UseGuards(AuthGuard)
   createComment(
     @Param('recipeId') recipeId: string,
-    @Body() body: CreateCommentDto,
+    @Body() body: CreateCommentInput,
     @Req() req: Request & { user?: { id?: string } },
   ) {
     const authorId = this.getAuthenticatedUserId(req);
@@ -122,7 +126,7 @@ export class RecipesController {
   updateComment(
     @Param('recipeId') recipeId: string,
     @Param('commentId') commentId: string,
-    @Body() body: UpdateCommentDto,
+    @Body() body: UpdateCommentInput,
     @Req() req: Request & { user?: { id?: string } },
   ) {
     const authorId = this.getAuthenticatedUserId(req);
@@ -167,6 +171,30 @@ export class RecipesController {
       thumbnailPath: body.thumbnailPath,
       ingredients,
       steps,
+    };
+  }
+
+  private parseUpdateRecipeBody(body: UpdateRecipeInput): UpdateRecipeDto {
+    if (!body) {
+      throw new BadRequestException('request body is required');
+    }
+
+    return {
+      title: body.title,
+      price:
+        body.price === undefined || body.price === null || body.price === ''
+          ? undefined
+          : this.parseNumber(body.price),
+      content: body.content,
+      categories:
+        body.categories === undefined || body.categories === null
+          ? undefined
+          : this.parseStringArray(body.categories),
+      thumbnailPath: body.thumbnailPath,
+      steps:
+        body.steps === undefined || body.steps === null
+          ? undefined
+          : this.parseToRecipeStepEntity(body.steps),
     };
   }
 

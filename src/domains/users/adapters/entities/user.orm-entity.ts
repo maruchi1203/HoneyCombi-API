@@ -6,12 +6,12 @@
   UpdateDateColumn,
 } from 'typeorm';
 
-@Entity({ name: 'users' })
+@Entity({ name: 'Users' })
 export class UserOrmEntity {
-  @PrimaryColumn({ type: 'varchar', length: 128 })
+  @PrimaryColumn({ type: 'text' })
   id!: string;
 
-  @Column({ type: 'varchar', length: 64 })
+  @Column({ type: 'text' })
   nickname!: string;
 
   @Column({ name: 'profile_img_path', type: 'text', nullable: true })

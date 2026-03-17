@@ -19,22 +19,22 @@ export class SupabaseUsersRepository implements UsersPort {
     private readonly s3Storage: S3StorageService,
   ) {}
 
-  async findOne(id: string): Promise<User | null> {
-    const row = await this.userRepo.findOne({ where: { id } });
+  async findOne(userId: string): Promise<User | null> {
+    const row = await this.userRepo.findOne({ where: { userId } });
     return row ? this.mapUser(row) : null;
   }
 
   async register(
-    id: string,
+    userId: string,
     data: RegisterUserDto,
     profileImage?: Express.Multer.File,
   ): Promise<User> {
     // 이미지가 함께 오면 먼저 업로드해 경로를 확정한 뒤 DB에 반영합니다.
     const uploadedProfileImgPath = await this.uploadProfileImage(
-      id,
+      userId,
       profileImage,
     );
-    const existing = await this.userRepo.findOne({ where: { id } });
+    const existing = await this.userRepo.findOne({ where: { userId } });
 
     // 동일 ID가 이미 있으면 신규 생성 대신 프로필 정보를 갱신합니다.
     if (existing) {
@@ -48,7 +48,7 @@ export class SupabaseUsersRepository implements UsersPort {
     }
 
     const created = this.userRepo.create({
-      id,
+      userId,
       nickname: data.nickname,
       profileImgPath: uploadedProfileImgPath ?? data.profileImgPath ?? null,
     });
@@ -58,17 +58,17 @@ export class SupabaseUsersRepository implements UsersPort {
   }
 
   async update(
-    id: string,
+    userId: string,
     data: UpdateUserDto,
     profileImage?: Express.Multer.File,
   ): Promise<User> {
-    const row = await this.userRepo.findOne({ where: { id } });
+    const row = await this.userRepo.findOne({ where: { userId } });
     if (!row) {
       throw new NotFoundException('User not found.');
     }
 
     const uploadedProfileImgPath = await this.uploadProfileImage(
-      id,
+      userId,
       profileImage,
     );
     row.nickname = data.nickname ?? row.nickname;
@@ -79,8 +79,8 @@ export class SupabaseUsersRepository implements UsersPort {
     return this.mapUser(updated);
   }
 
-  async unregister(id: string): Promise<void> {
-    await this.userRepo.delete({ id });
+  async unregister(userId: string): Promise<void> {
+    await this.userRepo.delete({ userId });
   }
 
   /**
@@ -114,7 +114,7 @@ export class SupabaseUsersRepository implements UsersPort {
    */
   private async mapUser(row: UserOrmEntity): Promise<User> {
     return {
-      id: row.id,
+      userId: row.userId,
       nickname: row.nickname,
       profileImgPath: row.profileImgPath ?? undefined,
       profileImgUrl:

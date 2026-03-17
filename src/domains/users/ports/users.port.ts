@@ -2,19 +2,19 @@
 import { User } from '../entities/user.entity';
 
 export interface UsersPort {
-  findOne(id: string): Promise<User | null>;
+  findOne(userId: string): Promise<User | null>;
 
   register(
-    id: string,
+    userId: string,
     data: RegisterUserDto,
     profileImage?: Express.Multer.File,
   ): Promise<User>;
 
   update(
-    id: string,
+    userId: string,
     data: UpdateUserDto,
     profileImage?: Express.Multer.File,
   ): Promise<User>;
 
-  unregister(id: string): Promise<void>;
+  unregister(userId: string): Promise<void>;
 }

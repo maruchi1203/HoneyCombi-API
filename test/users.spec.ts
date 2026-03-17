@@ -16,7 +16,7 @@ describe('users suite', () => {
   });
 
   afterAll(async () => {
-    await dataSource.getRepository(UserOrmEntity).delete({ id: userId });
+    await dataSource.getRepository(UserOrmEntity).delete({ userId: userId });
     await app.close();
   });
 
@@ -32,7 +32,7 @@ describe('users suite', () => {
       .expect(201);
 
     expect(response.body).toMatchObject({
-      id: userId,
+      userId,
       nickname: 'upload-user',
       profileImgPath: `users/${userId}/profile.png`,
     });
@@ -48,7 +48,7 @@ describe('users suite', () => {
       .expect(200);
 
     expect(response.body).toMatchObject({
-      id: userId,
+      userId,
       nickname: 'upload-user',
       profileImgPath: `users/${userId}/profile.png`,
     });
@@ -70,7 +70,7 @@ describe('users suite', () => {
       .expect(200);
 
     expect(response.body).toMatchObject({
-      id: userId,
+      userId,
       nickname: 'updated-user',
       profileImgPath: `users/${userId}/profile.jpeg`,
     });
@@ -88,7 +88,7 @@ describe('users suite', () => {
 
     const deleted = await dataSource
       .getRepository(UserOrmEntity)
-      .findOne({ where: { id: userId } });
+      .findOne({ where: { userId: userId } });
 
     expect(deleted).toBeNull();
   });

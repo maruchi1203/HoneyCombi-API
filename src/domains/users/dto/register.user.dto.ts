@@ -3,7 +3,7 @@ import { IsOptional, IsString } from 'class-validator';
 export class RegisterUserDto {
   @IsOptional()
   @IsString()
-  id?: string;
+  userId?: string;
 
   @IsString()
   nickname!: string;

@@ -17,7 +17,7 @@ export async function createTestUser(
     .expect(201);
 
   return response.body as {
-    id: string;
+    userId: string;
     nickname: string;
     profileImgPath?: string;
     profileImgUrl?: string;

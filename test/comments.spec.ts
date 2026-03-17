@@ -50,7 +50,7 @@ describe('comments suite', () => {
       await dataSource.getRepository(RecipeStepOrmEntity).delete({ recipeId });
       await dataSource.getRepository(RecipeOrmEntity).delete({ recipeId });
     }
-    await dataSource.getRepository(UserOrmEntity).delete({ id: authorId });
+    await dataSource.getRepository(UserOrmEntity).delete({ userId: authorId });
 
     await app.close();
   });

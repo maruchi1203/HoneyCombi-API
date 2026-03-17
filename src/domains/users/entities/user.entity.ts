@@ -1,5 +1,5 @@
 export class User {
-  id!: string;
+  userId!: string;
   nickname!: string;
   profileImgPath?: string;
   profileImgUrl?: string;

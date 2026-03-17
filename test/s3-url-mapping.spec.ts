@@ -25,7 +25,7 @@ describe('S3 URL mapping', () => {
     // DB 행은 S3 내부 key만 저장하고 있다고 가정합니다.
     const userRepo = {
       findOne: jest.fn().mockResolvedValue({
-        id: 'user-1',
+        userId: 'user-1',
         nickname: 'tester',
         profileImgPath: USER_PROFILE_KEY,
       } satisfies Partial<UserOrmEntity>),
@@ -46,7 +46,7 @@ describe('S3 URL mapping', () => {
 
     // 응답은 내부 경로와 외부 접근 URL을 모두 유지해야 합니다.
     expect(result).toEqual({
-      id: 'user-1',
+      userId: 'user-1',
       nickname: 'tester',
       profileImgPath: USER_PROFILE_KEY,
       profileImgUrl: buildSignedUrl(USER_PROFILE_KEY),

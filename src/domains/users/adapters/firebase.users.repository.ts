@@ -16,9 +16,9 @@ import { UsersPort } from '../ports/users.port';
 export class FirebaseUsersRepository implements UsersPort {
   private readonly usersColName = 'users';
 
-  async findOne(id: string): Promise<User | null> {
+  async findOne(userId: string): Promise<User | null> {
     const db = getFirestore();
-    const snapshot = await db.collection(this.usersColName).doc(id).get();
+    const snapshot = await db.collection(this.usersColName).doc(userId).get();
 
     if (!snapshot.exists) {
       return null;
@@ -28,14 +28,14 @@ export class FirebaseUsersRepository implements UsersPort {
   }
 
   async register(
-    id: string,
+    userId: string,
     data: RegisterUserDto,
     profileImage?: Express.Multer.File,
   ): Promise<User> {
     const db = getFirestore();
-    const userRef = db.collection(this.usersColName).doc(id);
+    const userRef = db.collection(this.usersColName).doc(userId);
     const uploadedProfileImgPath = await this.uploadProfileImage(
-      id,
+      userId,
       profileImage,
     );
 
@@ -56,12 +56,12 @@ export class FirebaseUsersRepository implements UsersPort {
   }
 
   async update(
-    id: string,
+    userId: string,
     data: UpdateUserDto,
     profileImage?: Express.Multer.File,
   ): Promise<User> {
     const db = getFirestore();
-    const userRef = db.collection(this.usersColName).doc(id);
+    const userRef = db.collection(this.usersColName).doc(userId);
     const snapshot = await userRef.get();
 
     if (!snapshot.exists) {
@@ -69,7 +69,7 @@ export class FirebaseUsersRepository implements UsersPort {
     }
 
     const uploadedProfileImgPath = await this.uploadProfileImage(
-      id,
+      userId,
       profileImage,
     );
 
@@ -85,9 +85,9 @@ export class FirebaseUsersRepository implements UsersPort {
     return this.mapSnapshotToUser(updated);
   }
 
-  async unregister(id: string): Promise<void> {
+  async unregister(userId: string): Promise<void> {
     const db = getFirestore();
-    await db.collection(this.usersColName).doc(id).delete();
+    await db.collection(this.usersColName).doc(userId).delete();
   }
 
   /**
@@ -120,7 +120,7 @@ export class FirebaseUsersRepository implements UsersPort {
     const raw = snapshot.data() as Partial<User> | undefined;
 
     return {
-      id: snapshot.id,
+      userId: snapshot.id,
       nickname: raw?.nickname ?? '',
       profileImgPath: raw?.profileImgPath ?? undefined,
     };

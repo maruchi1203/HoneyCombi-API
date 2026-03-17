@@ -5,6 +5,10 @@ import { UpdateRecipeDto } from '../dto/index.dto';
 import type { RecipesPort } from '../ports/recipes.port';
 import { RECIPE_REPOSITORY } from '../recipe.tokens';
 
+/**
+ * 레시피 관련 요청을 저장소 인터페이스에 위임하기 전에
+ * 목록 조회 파라미터처럼 공통 규칙이 필요한 값만 정리합니다.
+ */
 @Injectable()
 export class RecipesUseCase {
   constructor(
@@ -48,6 +52,9 @@ export class RecipesUseCase {
     return result;
   }
 
+  /**
+   * limit은 기본값 20, 최대 100으로 고정해 과도한 조회를 막습니다.
+   */
   private parseLimit(rawLimit?: number) {
     const defaultLimit = 20;
     const parsed =

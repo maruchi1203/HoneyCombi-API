@@ -4,6 +4,10 @@ import { COMMENT_REPOSITORY } from '../recipe.tokens';
 import { CreateCommentDto } from '../dto/index.dto';
 import { UpdateCommentDto } from '../dto/index.dto';
 
+/**
+ * 댓글 관련 애플리케이션 서비스입니다.
+ * 현재는 권한 주체와 요청 데이터를 저장소 계층으로 전달하는 역할에 집중합니다.
+ */
 @Injectable()
 export class CommentUseCase {
   constructor(

@@ -7,6 +7,10 @@ import { User } from '../entities/user.entity';
 import { UsersPort } from '../ports/users.port';
 import { UserOrmEntity } from './entities/user.orm-entity';
 
+/**
+ * PostgreSQL(TypeORM) 기반 사용자 저장소입니다.
+ * 사용자 메타데이터는 DB에 저장하고, 프로필 이미지는 S3에 업로드합니다.
+ */
 @Injectable()
 export class SupabaseUsersRepository implements UsersPort {
   constructor(
@@ -25,12 +29,14 @@ export class SupabaseUsersRepository implements UsersPort {
     data: RegisterUserDto,
     profileImage?: Express.Multer.File,
   ): Promise<User> {
+    // 이미지가 함께 오면 먼저 업로드해 경로를 확정한 뒤 DB에 반영합니다.
     const uploadedProfileImgPath = await this.uploadProfileImage(
       id,
       profileImage,
     );
     const existing = await this.userRepo.findOne({ where: { id } });
 
+    // 동일 ID가 이미 있으면 신규 생성 대신 프로필 정보를 갱신합니다.
     if (existing) {
       existing.nickname = data.nickname ?? existing.nickname;
       existing.profileImgPath =
@@ -77,6 +83,9 @@ export class SupabaseUsersRepository implements UsersPort {
     await this.userRepo.delete({ id });
   }
 
+  /**
+   * 메모리 업로드된 프로필 이미지를 S3에 저장하고 저장 경로를 반환합니다.
+   */
   private async uploadProfileImage(
     userId: string,
     profileImage?: Express.Multer.File,
@@ -100,6 +109,9 @@ export class SupabaseUsersRepository implements UsersPort {
     return type.split('/')[1] ?? 'jpg';
   }
 
+  /**
+   * DB 행을 API 응답용 사용자 모델로 변환하면서 서명 URL을 함께 채웁니다.
+   */
   private async mapUser(row: UserOrmEntity): Promise<User> {
     return {
       id: row.id,

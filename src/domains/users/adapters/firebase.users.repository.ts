@@ -8,6 +8,10 @@ import { RegisterUserDto, UpdateUserDto } from '../dto/index.dto';
 import { User } from '../entities/user.entity';
 import { UsersPort } from '../ports/users.port';
 
+/**
+ * Firestore 기반 사용자 저장소입니다.
+ * 문서 저장과 이미지 업로드를 Firebase 서비스로 처리합니다.
+ */
 @Injectable()
 export class FirebaseUsersRepository implements UsersPort {
   private readonly usersColName = 'users';
@@ -35,6 +39,7 @@ export class FirebaseUsersRepository implements UsersPort {
       profileImage,
     );
 
+    // undefined 필드를 제거해 Firestore에 의도치 않은 값이 기록되지 않도록 합니다.
     const payload = {
       ...this.stripUndefined({
         ...data,
@@ -85,6 +90,9 @@ export class FirebaseUsersRepository implements UsersPort {
     await db.collection(this.usersColName).doc(id).delete();
   }
 
+  /**
+   * 프로필 이미지를 Firebase Storage에 저장하고 문서에 넣을 경로를 생성합니다.
+   */
   private async uploadProfileImage(
     userId: string,
     profileImage?: Express.Multer.File,
@@ -105,6 +113,9 @@ export class FirebaseUsersRepository implements UsersPort {
     return storagePath;
   }
 
+  /**
+   * Firestore 스냅샷을 API 응답 형태의 사용자 객체로 변환합니다.
+   */
   private mapSnapshotToUser(snapshot: admin.firestore.DocumentSnapshot): User {
     const raw = snapshot.data() as Partial<User> | undefined;
 
@@ -115,6 +126,9 @@ export class FirebaseUsersRepository implements UsersPort {
     };
   }
 
+  /**
+   * Firestore update/set 전에 undefined 값을 제거합니다.
+   */
   private stripUndefined(value: UpdateUserDto | RegisterUserDto) {
     return Object.fromEntries(
       Object.entries(value).filter(([, entry]) => entry !== undefined),

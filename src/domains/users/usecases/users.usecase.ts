@@ -6,6 +6,10 @@ import {
 import type { UsersPort } from '../ports/users.port';
 import { USERS_REPOSITORY } from '../users.tokens';
 
+/**
+ * 사용자 도메인의 애플리케이션 서비스입니다.
+ * 컨트롤러 요청을 저장소 인터페이스에 연결하는 얇은 조정 계층 역할을 합니다.
+ */
 @Injectable()
 export class UsersUseCase {
   constructor(

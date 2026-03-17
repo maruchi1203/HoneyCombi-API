@@ -35,6 +35,10 @@ import { CommentUseCase } from './usecases/comment.usecase';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { RecipeStepEntity } from './entities/recipe-step.entity';
 
+/**
+ * 레시피와 댓글 관련 HTTP 요청을 입력 DTO로 정리해 유스케이스로 전달합니다.
+ * 멀티파트 요청에서 넘어오는 문자열 배열, 숫자, 단계 정보를 여기서 정규화합니다.
+ */
 @Controller('recipes')
 export class RecipesController {
   constructor(
@@ -68,6 +72,10 @@ export class RecipesController {
     return result;
   }
 
+  /**
+   * 상위 랭킹 API를 위한 자리입니다.
+   * 현재 구현은 비어 있으므로 라우트만 선언된 상태입니다.
+   */
   @Get('top')
   findTopRankingRecipes(@Query() query: RecipeListQueryDto) {}
 
@@ -81,7 +89,7 @@ export class RecipesController {
   async updateRecipe(
     @Param('recipeId') recipeId: string,
     @Body() updatePostDto: UpdateRecipeInput,
-    @Req() req: Request & { user?: { id?: string } },
+    @Req() req: Reequest & { user?: { id?: string } },
   ) {
     const currentUserId = this.getAuthenticatedUserId(req);
     await this.assertRecipeOwner(recipeId, currentUserId);
@@ -150,6 +158,10 @@ export class RecipesController {
   }
 
   // #region private
+  /**
+   * 생성 요청 본문을 서버 내부 DTO로 변환합니다.
+   * multipart/form-data 에서 문자열로 들어온 배열과 숫자를 여기서 정리합니다.
+   */
   private parseCreateRecipeBody(
     body: CreateRecipeInput,
     authorId: string,
@@ -174,6 +186,9 @@ export class RecipesController {
     };
   }
 
+  /**
+   * 수정 요청에서는 값이 비어 있는 필드를 undefined로 통일해 부분 업데이트 의미를 유지합니다.
+   */
   private parseUpdateRecipeBody(body: UpdateRecipeInput): UpdateRecipeDto {
     if (!body) {
       throw new BadRequestException('request body is required');
@@ -198,6 +213,9 @@ export class RecipesController {
     };
   }
 
+  /**
+   * 숫자 입력이 문자열로 들어오더라도 안전하게 number로 변환합니다.
+   */
   private parseNumber(value?: number | string) {
     if (value === undefined || value === null || value === '') {
       return undefined;
@@ -211,6 +229,9 @@ export class RecipesController {
     return parsed;
   }
 
+  /**
+   * step 정보는 JSON 문자열 또는 배열 둘 다 허용하며, 최종적으로 내부 엔티티 배열로 맞춥니다.
+   */
   private parseToRecipeStepEntity(
     value?: RecipeStepEntity[] | string,
   ): RecipeStepEntity[] {
@@ -263,6 +284,7 @@ export class RecipesController {
     } catch (error) {
       const trimmed = raw.trim();
       if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        // key에 따옴표가 없거나 문자열 값이 느슨하게 들어온 경우를 보정합니다.
         const normalized = trimmed
           .replace(/([{,]\s*)([A-Za-z_][\w]*)\s*:/g, '$1"$2":')
           .replace(/:\s*([^,"\]\}][^,\]\}]*)/g, (_match, value) => {
@@ -285,6 +307,9 @@ export class RecipesController {
     }
   }
 
+  /**
+   * 배열 입력은 JSON 문자열과 콤마 구분 문자열을 모두 허용합니다.
+   */
   private parseStringArray(value?: string[] | string) {
     if (value === undefined || value === null || value === '') {
       return [];
@@ -323,6 +348,9 @@ export class RecipesController {
     return userId;
   }
 
+  /**
+   * 수정/삭제 전에 현재 사용자가 해당 레시피 작성자인지 확인합니다.
+   */
   private async assertRecipeOwner(recipeId: string, userId: string) {
     const recipe = await this.recipeUseCase.findFullRecipe(recipeId);
     if (!recipe) {

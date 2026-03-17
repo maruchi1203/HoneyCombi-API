@@ -15,6 +15,10 @@ import { CreateCommentDto } from '../dto/index.dto';
 import { UpdateCommentDto } from '../dto/index.dto';
 import { Comment } from '../entities/comment.entity';
 
+/**
+ * Firestore 기반 레시피 저장소입니다.
+ * 레시피/댓글 문서는 Firestore에, 이미지 파일은 Firebase Storage에 저장합니다.
+ */
 @Injectable()
 export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
   private readonly recipesColName = 'recipes';
@@ -291,9 +295,7 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
 
   // #region snapshot
   /**
-   *
-   * @param snapshot
-   * @returns
+   * Firestore 레시피 문서를 API 응답용 상세 모델로 변환합니다.
    */
   private mapSnapshotForRecipe(
     snapshot: admin.firestore.DocumentSnapshot,
@@ -324,9 +326,7 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
   }
 
   /**
-   *
-   * @param snapshot
-   * @returns
+   * Firestore 레시피 문서를 목록 조회용 축약 모델로 변환합니다.
    */
   private mapSnapshotForRecipeListItem(
     snapshot: admin.firestore.DocumentSnapshot,
@@ -372,6 +372,9 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
   // #endregion
 
   // #region Private
+  /**
+   * 업로드된 파일 목록에서 썸네일과 step 이미지를 분리해 Storage에 저장합니다.
+   */
   private async uploadRecipeImages(
     recipeId: string,
     steps: CreateRecipeDto['steps'],
@@ -495,6 +498,9 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
     ) as Partial<UpdateRecipeDto>;
   }
 
+  /**
+   * Firestore Timestamp, Date, 문자열을 모두 ISO 문자열로 통일합니다.
+   */
   private toIsoDate(value: unknown) {
     if (!value) {
       return '';

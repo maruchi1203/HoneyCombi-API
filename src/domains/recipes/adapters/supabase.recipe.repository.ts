@@ -26,6 +26,10 @@ import {
   RecipeStepOrmEntity,
 } from './orm';
 
+/**
+ * PostgreSQL(TypeORM) 기반 레시피 저장소입니다.
+ * 레시피 메타데이터는 DB에, 이미지는 S3에, 목록/상세 조회 캐시는 Redis에 둡니다.
+ */
 @Injectable()
 export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
   constructor(
@@ -61,6 +65,7 @@ export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
       files,
     );
 
+    // 레시피 본문과 step 이미지는 함께 보여야 하므로 하나의 트랜잭션에서 맞춰 저장합니다.
     await this.dataSource.transaction(async (manager) => {
       savedRecipe.thumbnailPath =
         savedRecipe.thumbnailPath ?? uploaded.thumbnailPath ?? null;
@@ -82,6 +87,7 @@ export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
     sort: string,
     limit: number,
   ): Promise<RecipeListItem[]> {
+    // 정렬 조건별 캐시 키를 분리해 목록 조회 비용을 줄입니다.
     const cacheKey = `recipes:list:${sort}:${cursor ?? ''}:${limit}`;
     const cached = await this.cache.getJson<RecipeListItem[]>(cacheKey);
     if (cached) {
@@ -346,6 +352,7 @@ export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
     steps: CreateRecipeDto['steps'],
     files: Express.Multer.File[],
   ) {
+    // multipart field 이름 규칙을 기준으로 썸네일과 step 이미지를 분리합니다.
     const thumbnailFile = files.find((file) => file.fieldname === 'thumbnail');
     const stepFiles = files.filter((file) =>
       this.isStepImageField(file.fieldname),
@@ -438,6 +445,7 @@ export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
     recipeId: string,
     steps: RecipeStepEntity[],
   ) {
+    // step은 순서 전체를 다시 쓰는 구조라 기존 데이터를 비우고 새로 저장합니다.
     await stepRepo.delete({ recipeId });
     if (!steps.length) {
       return;
@@ -466,6 +474,7 @@ export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
   }
 
   private async invalidateRecipeCache(recipeId: string) {
+    // 목록과 상세 캐시는 서로 다른 키 공간을 사용하므로 둘 다 비워야 합니다.
     await this.cache.delByPrefix('recipes:list:');
     await this.cache.delByPrefix(`recipes:detail:${recipeId}`);
   }

@@ -2,7 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { S3StorageService } from '../../../common/storage/s3.storage.service';
-import { RegisterUserDto, UpdateUserDto } from '../dto/index.dto';
+import {
+  RegisterUserCommand,
+  UpdateUserDto,
+} from '../dto/index.dto';
 import { User } from '../entities/user.entity';
 import { UsersPort } from '../ports/users.port';
 import { UserOrmEntity } from './entities/user.orm-entity';
@@ -25,32 +28,34 @@ export class SupabaseUsersRepository implements UsersPort {
   }
 
   async register(
-    userId: string,
-    data: RegisterUserDto,
+    registerData: RegisterUserCommand,
     profileImage?: Express.Multer.File,
   ): Promise<User> {
     // 이미지가 함께 오면 먼저 업로드해 경로를 확정한 뒤 DB에 반영합니다.
     const uploadedProfileImgPath = await this.uploadProfileImage(
-      userId,
+      registerData.userId,
       profileImage,
     );
-    const existing = await this.userRepo.findOne({ where: { userId } });
+    const existing = await this.userRepo.findOne({
+      where: { userId: registerData.userId },
+    });
 
     // 동일 ID가 이미 있으면 신규 생성 대신 프로필 정보를 갱신합니다.
     if (existing) {
-      existing.nickname = data.nickname ?? existing.nickname;
+      existing.nickname = registerData.nickname ?? existing.nickname;
       existing.profileImgPath =
         uploadedProfileImgPath ??
-        data.profileImgPath ??
+        registerData.profileImgPath ??
         existing.profileImgPath;
       const updated = await this.userRepo.save(existing);
       return this.mapUser(updated);
     }
 
     const created = this.userRepo.create({
-      userId,
-      nickname: data.nickname,
-      profileImgPath: uploadedProfileImgPath ?? data.profileImgPath ?? null,
+      userId: registerData.userId,
+      nickname: registerData.nickname,
+      profileImgPath:
+        uploadedProfileImgPath ?? registerData.profileImgPath ?? null,
     });
 
     const saved = await this.userRepo.save(created);

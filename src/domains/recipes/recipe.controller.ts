@@ -89,7 +89,7 @@ export class RecipesController {
   async updateRecipe(
     @Param('recipeId') recipeId: string,
     @Body() updatePostDto: UpdateRecipeInput,
-    @Req() req: Reequest & { user?: { id?: string } },
+    @Req() req: Request & { user?: { id?: string } },
   ) {
     const currentUserId = this.getAuthenticatedUserId(req);
     await this.assertRecipeOwner(recipeId, currentUserId);

@@ -1,6 +1,6 @@
-﻿import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import {
-  RegisterUserDto,
+  RegisterUserCommand,
   UpdateUserDto as UpdateUserInfoDto,
 } from '../dto/index.dto';
 import type { UsersPort } from '../ports/users.port';
@@ -23,15 +23,10 @@ export class UsersUseCase {
   }
 
   register(
-    userId: string,
-    registerUserDto: RegisterUserDto,
+    registerUserDto: RegisterUserCommand,
     profileImage?: Express.Multer.File,
   ) {
-    const txnRes = this.usersRepository.register(
-      userId,
-      registerUserDto,
-      profileImage,
-    );
+    const txnRes = this.usersRepository.register(registerUserDto, profileImage);
     return txnRes;
   }
 

@@ -17,7 +17,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import type { Request } from 'express';
-import type { RegisterUserDto, UpdateUserDto } from './dto/index.dto';
+import { RegisterUserDto, UpdateUserDto } from './dto/index.dto';
 import { UsersUseCase } from './usecases/users.usecase';
 import { AuthGuard } from '../../common/guards/auth.guard';
 
@@ -57,8 +57,8 @@ export class UsersController {
     }
 
     return this.usersUseCase.register(
-      userId,
       {
+        userId,
         nickname,
         profileImgPath: body.profileImgPath,
       },

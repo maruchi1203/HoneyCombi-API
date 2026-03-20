@@ -4,7 +4,11 @@ import {
   getFirestore,
   getStorageBucket,
 } from '../../../common/firebase/firebase-admin';
-import { RegisterUserDto, UpdateUserDto } from '../dto/index.dto';
+import {
+  RegisterUserCommand,
+  RegisterUserDto,
+  UpdateUserDto,
+} from '../dto/index.dto';
 import { User } from '../entities/user.entity';
 import { UsersPort } from '../ports/users.port';
 
@@ -28,14 +32,13 @@ export class FirebaseUsersRepository implements UsersPort {
   }
 
   async register(
-    userId: string,
-    data: RegisterUserDto,
+    data: RegisterUserCommand,
     profileImage?: Express.Multer.File,
   ): Promise<User> {
     const db = getFirestore();
-    const userRef = db.collection(this.usersColName).doc(userId);
+    const userRef = db.collection(this.usersColName).doc(data.userId);
     const uploadedProfileImgPath = await this.uploadProfileImage(
-      userId,
+      data.userId,
       profileImage,
     );
 

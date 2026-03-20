@@ -12,3 +12,7 @@ export class RegisterUserDto {
   @IsString()
   profileImgPath?: string;
 }
+
+export type RegisterUserCommand = RegisterUserDto & {
+  userId: string;
+};

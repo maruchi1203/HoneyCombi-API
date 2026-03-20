@@ -18,8 +18,8 @@
 - [X] 레시피 DB 및 CRUD 로직 설계
   - [X] 레시피
   - [X] 댓글
-- [ ] 유저 CRUD 로직 설계
+- [X] 유저 CRUD 로직 설계
 
 #### v0.2
-- [ ] 기존 로직을 Supabase + AWS S3로 이전
+- [X] 기존 로직을 Supabase + AWS S3로 이전
 - [ ] 인기 게시물과 이벤트에 대해 Redis 로직 적용

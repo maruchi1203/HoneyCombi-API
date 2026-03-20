@@ -1,15 +1,14 @@
 import { INestApplication } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import { getDataSourceToken } from '@nestjs/typeorm';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
-import { AppModule } from '../src/app.module';
-import { AuthGuard } from '../src/common/guards/auth.guard';
 import {
   RecipeCommentOrmEntity,
   RecipeOrmEntity,
   RecipeStepOrmEntity,
 } from '../src/domains/recipes/adapters/orm';
+import { UserOrmEntity } from '../src/domains/users/adapters/entities/user.orm-entity';
+import { createAuthTestApp } from './helpers/auth-test-app';
+import { createTestUser } from './helpers/create-test-user';
 
 jest.setTimeout(20000);
 
@@ -17,34 +16,14 @@ describe('recipes suite', () => {
   let app: INestApplication;
   let dataSource: DataSource;
   let recipeId = '';
-  const userId = 'test0';
+  const userId = 'recipe-test-user';
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideGuard(AuthGuard)
-      .useValue({
-        canActivate: (context: {
-          switchToHttp: () => {
-            getRequest: () => {
-              headers: Record<string, string | string[] | undefined>;
-              user?: { id?: string };
-            };
-          };
-        }) => {
-          const request = context.switchToHttp().getRequest();
-          const header = request.headers['x-user-id'];
-          const resolvedUserId = Array.isArray(header) ? header[0] : header;
-          request.user = { id: resolvedUserId };
-          return true;
-        },
-      })
-      .compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
-    dataSource = app.get<DataSource>(getDataSourceToken());
+    ({ app, dataSource } = await createAuthTestApp());
+    await createTestUser(app, {
+      userId,
+      nickname: 'recipe-test-user',
+    });
   });
 
   afterAll(async () => {
@@ -55,6 +34,7 @@ describe('recipes suite', () => {
       await dataSource.getRepository(RecipeStepOrmEntity).delete({ recipeId });
       await dataSource.getRepository(RecipeOrmEntity).delete({ recipeId });
     }
+    await dataSource.getRepository(UserOrmEntity).delete({ userId: userId });
 
     await app.close();
   });

@@ -6,15 +6,15 @@
   UpdateDateColumn,
 } from 'typeorm';
 
-@Entity({ name: 'users' })
+@Entity({ name: 'Users' })
 export class UserOrmEntity {
-  @PrimaryColumn({ type: 'varchar', length: 128 })
-  id!: string;
+  @PrimaryColumn({ name: 'user_id', type: 'text' })
+  userId!: string;
 
-  @Column({ type: 'varchar', length: 64 })
+  @Column({ type: 'text' })
   nickname!: string;
 
-  @Column({ name: 'profile_img_path', type: 'text', nullable: true })
+  @Column({ name: 'profile_image_path', type: 'text', nullable: true })
   profileImgPath?: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })

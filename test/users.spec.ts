@@ -1,11 +1,8 @@
 import { INestApplication } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import { getDataSourceToken } from '@nestjs/typeorm';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
-import { AppModule } from '../src/app.module';
-import { AuthGuard } from '../src/common/guards/auth.guard';
 import { UserOrmEntity } from '../src/domains/users/adapters/entities/user.orm-entity';
+import { createAuthTestApp } from './helpers/auth-test-app';
 
 jest.setTimeout(20000);
 
@@ -15,35 +12,11 @@ describe('users suite', () => {
   const userId = 'user-upload-test';
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideGuard(AuthGuard)
-      .useValue({
-        canActivate: (context: {
-          switchToHttp: () => {
-            getRequest: () => {
-              headers: Record<string, string | string[] | undefined>;
-              user?: { id?: string };
-            };
-          };
-        }) => {
-          const request = context.switchToHttp().getRequest();
-          const header = request.headers['x-user-id'];
-          const resolvedUserId = Array.isArray(header) ? header[0] : header;
-          request.user = { id: resolvedUserId };
-          return true;
-        },
-      })
-      .compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
-    dataSource = app.get<DataSource>(getDataSourceToken());
+    ({ app, dataSource } = await createAuthTestApp());
   });
 
   afterAll(async () => {
-    await dataSource.getRepository(UserOrmEntity).delete({ id: userId });
+    await dataSource.getRepository(UserOrmEntity).delete({ userId: userId });
     await app.close();
   });
 
@@ -59,10 +32,30 @@ describe('users suite', () => {
       .expect(201);
 
     expect(response.body).toMatchObject({
-      id: userId,
+      userId,
       nickname: 'upload-user',
       profileImgPath: `users/${userId}/profile.png`,
     });
+    expect(response.body.profileImgUrl).toEqual(expect.any(String));
+    expect(response.body.profileImgUrl).toContain(
+      `users/${userId}/profile.png`,
+    );
+  });
+
+  it('finds a user with a signed profile image url', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/users/${userId}`)
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      userId,
+      nickname: 'upload-user',
+      profileImgPath: `users/${userId}/profile.png`,
+    });
+    expect(response.body.profileImgUrl).toEqual(expect.any(String));
+    expect(response.body.profileImgUrl).toContain(
+      `users/${userId}/profile.png`,
+    );
   });
 
   it('updates a user profile image upload', async () => {
@@ -77,10 +70,14 @@ describe('users suite', () => {
       .expect(200);
 
     expect(response.body).toMatchObject({
-      id: userId,
+      userId,
       nickname: 'updated-user',
       profileImgPath: `users/${userId}/profile.jpeg`,
     });
+    expect(response.body.profileImgUrl).toEqual(expect.any(String));
+    expect(response.body.profileImgUrl).toContain(
+      `users/${userId}/profile.jpeg`,
+    );
   });
 
   it('deletes a user', async () => {
@@ -91,7 +88,7 @@ describe('users suite', () => {
 
     const deleted = await dataSource
       .getRepository(UserOrmEntity)
-      .findOne({ where: { id: userId } });
+      .findOne({ where: { userId: userId } });
 
     expect(deleted).toBeNull();
   });

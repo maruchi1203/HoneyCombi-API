@@ -3,7 +3,7 @@ import { IsOptional, IsString } from 'class-validator';
 export class RegisterUserDto {
   @IsOptional()
   @IsString()
-  id?: string;
+  userId?: string;
 
   @IsString()
   nickname!: string;
@@ -12,3 +12,7 @@ export class RegisterUserDto {
   @IsString()
   profileImgPath?: string;
 }
+
+export type RegisterUserCommand = RegisterUserDto & {
+  userId: string;
+};

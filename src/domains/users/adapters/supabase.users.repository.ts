@@ -2,7 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { S3StorageService } from '../../../common/storage/s3.storage.service';
-import { RegisterUserDto, UpdateUserDto } from '../dto/index.dto';
+import {
+  RegisterUserCommand,
+  UpdateUserDto,
+} from '../dto/index.dto';
 import { User } from '../entities/user.entity';
 import { UsersPort } from '../ports/users.port';
 import { UserOrmEntity } from './entities/user.orm-entity';
@@ -19,38 +22,40 @@ export class SupabaseUsersRepository implements UsersPort {
     private readonly s3Storage: S3StorageService,
   ) {}
 
-  async findOne(id: string): Promise<User | null> {
-    const row = await this.userRepo.findOne({ where: { id } });
+  async findOne(userId: string): Promise<User | null> {
+    const row = await this.userRepo.findOne({ where: { userId } });
     return row ? this.mapUser(row) : null;
   }
 
   async register(
-    id: string,
-    data: RegisterUserDto,
+    registerData: RegisterUserCommand,
     profileImage?: Express.Multer.File,
   ): Promise<User> {
     // 이미지가 함께 오면 먼저 업로드해 경로를 확정한 뒤 DB에 반영합니다.
     const uploadedProfileImgPath = await this.uploadProfileImage(
-      id,
+      registerData.userId,
       profileImage,
     );
-    const existing = await this.userRepo.findOne({ where: { id } });
+    const existing = await this.userRepo.findOne({
+      where: { userId: registerData.userId },
+    });
 
     // 동일 ID가 이미 있으면 신규 생성 대신 프로필 정보를 갱신합니다.
     if (existing) {
-      existing.nickname = data.nickname ?? existing.nickname;
+      existing.nickname = registerData.nickname ?? existing.nickname;
       existing.profileImgPath =
         uploadedProfileImgPath ??
-        data.profileImgPath ??
+        registerData.profileImgPath ??
         existing.profileImgPath;
       const updated = await this.userRepo.save(existing);
       return this.mapUser(updated);
     }
 
     const created = this.userRepo.create({
-      id,
-      nickname: data.nickname,
-      profileImgPath: uploadedProfileImgPath ?? data.profileImgPath ?? null,
+      userId: registerData.userId,
+      nickname: registerData.nickname,
+      profileImgPath:
+        uploadedProfileImgPath ?? registerData.profileImgPath ?? null,
     });
 
     const saved = await this.userRepo.save(created);
@@ -58,17 +63,17 @@ export class SupabaseUsersRepository implements UsersPort {
   }
 
   async update(
-    id: string,
+    userId: string,
     data: UpdateUserDto,
     profileImage?: Express.Multer.File,
   ): Promise<User> {
-    const row = await this.userRepo.findOne({ where: { id } });
+    const row = await this.userRepo.findOne({ where: { userId } });
     if (!row) {
       throw new NotFoundException('User not found.');
     }
 
     const uploadedProfileImgPath = await this.uploadProfileImage(
-      id,
+      userId,
       profileImage,
     );
     row.nickname = data.nickname ?? row.nickname;
@@ -79,8 +84,8 @@ export class SupabaseUsersRepository implements UsersPort {
     return this.mapUser(updated);
   }
 
-  async unregister(id: string): Promise<void> {
-    await this.userRepo.delete({ id });
+  async unregister(userId: string): Promise<void> {
+    await this.userRepo.delete({ userId });
   }
 
   /**
@@ -114,7 +119,7 @@ export class SupabaseUsersRepository implements UsersPort {
    */
   private async mapUser(row: UserOrmEntity): Promise<User> {
     return {
-      id: row.id,
+      userId: row.userId,
       nickname: row.nickname,
       profileImgPath: row.profileImgPath ?? undefined,
       profileImgUrl:

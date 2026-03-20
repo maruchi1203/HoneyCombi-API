@@ -102,6 +102,18 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
     return snapshot.docs.map((doc) => this.mapSnapshotForRecipeListItem(doc));
   }
 
+  async findTopRecipeListItems(limit: number): Promise<RecipeListItem[]> {
+    const db = getFirestore();
+    const snapshot = await db
+      .collection(this.recipesColName)
+      .orderBy('stats.view', 'desc')
+      .orderBy('createdAt', 'desc')
+      .limit(limit)
+      .get();
+
+    return snapshot.docs.map((doc) => this.mapSnapshotForRecipeListItem(doc));
+  }
+
   /**
    * 레시피 단건 상세 정보를 조회합니다.
    * @param recipeId

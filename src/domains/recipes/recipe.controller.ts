@@ -73,11 +73,12 @@ export class RecipesController {
   }
 
   /**
-   * 상위 랭킹 API를 위한 자리입니다.
-   * 현재 구현은 비어 있으므로 라우트만 선언된 상태입니다.
+   * 조회 수 기준 상위 10개 레시피를 빠르게 조회합니다.
    */
   @Get('top')
-  findTopRankingRecipes(@Query() query: RecipeListQueryDto) {}
+  findTopRankingRecipes() {
+    return this.recipeUseCase.findTopRecipeListItems();
+  }
 
   @Get(':recipeId')
   findFullRecipe(@Param('recipeId') recipeId: string) {

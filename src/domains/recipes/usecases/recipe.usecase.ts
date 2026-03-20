@@ -33,6 +33,11 @@ export class RecipesUseCase {
     return items;
   }
 
+  async findTopRecipeListItems() {
+    const items = (await this.recipeRepository.findTopRecipeListItems(10)) ?? [];
+    return items;
+  }
+
   findFullRecipe(recipeId: string) {
     const result = this.recipeRepository.findFullRecipe(recipeId);
 

@@ -95,11 +95,26 @@ describe('recipes suite', () => {
       .expect(200);
 
     expect(Array.isArray(response.body)).toBe(true);
-    expect(
-      response.body.some(
-        (recipe: { recipeId: string }) => recipe.recipeId === recipeId,
-      ),
-    ).toBe(true);
+    const topRecipe = response.body.find(
+      (recipe: { recipeId: string }) => recipe.recipeId === recipeId,
+    );
+
+    expect(topRecipe).toMatchObject({
+      recipeId,
+      userId,
+      title: 'recipe updated title',
+      categories: ['A', 'B', 'C'],
+      summary: 'recipe updated summary',
+      stats: {
+        comment: expect.any(Number),
+        totalRate: expect.any(Number),
+        view: expect.any(Number),
+      },
+      createdAt: expect.any(String),
+    });
+    expect(topRecipe.id).toBeUndefined();
+    expect(topRecipe.authorId).toBeUndefined();
+    expect(topRecipe.steps).toBeUndefined();
   });
 
   it('deletes a recipe', async () => {

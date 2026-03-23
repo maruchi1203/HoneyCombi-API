@@ -1,7 +1,7 @@
 export interface Comment {
   id: string;
   recipeId: string;
-  authorId: string;
+  userId: string;
   text: string;
 
   stats: {

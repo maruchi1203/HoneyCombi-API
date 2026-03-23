@@ -13,11 +13,10 @@ export class AuthGuard implements CanActivate {
       .switchToHttp()
       .getRequest<Request & { user?: { id?: string } }>();
 
-    const existingUserId = request.user?.id;
-    if (existingUserId) {
+    if (request.user?.id) {
       return true;
     }
 
-    throw new UnauthorizedException('Authentication required.');
+    throw new UnauthorizedException('인증용 UserID 필요');
   }
 }

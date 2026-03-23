@@ -356,7 +356,7 @@ export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
     return {
       id: row.commentId,
       recipeId: row.recipeId,
-      authorId: row.userId,
+      userId: row.userId,
       text: row.text,
       stats: {
         good: row.statsGood,

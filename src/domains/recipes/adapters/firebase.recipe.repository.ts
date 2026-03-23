@@ -260,7 +260,7 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
     }
 
     const existing = snapshot.data() as Partial<Comment> | undefined;
-    if (existing?.authorId !== authorId) {
+    if (existing?.userId !== authorId) {
       throw new Error('Not allowed to update this comment.');
     }
 
@@ -290,7 +290,7 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
     }
 
     const existing = snapshot.data() as Partial<Comment> | undefined;
-    if (existing?.authorId !== authorId) {
+    if (existing?.userId !== authorId) {
       throw new Error('Not allowed to delete this comment.');
     }
 
@@ -371,7 +371,7 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
     return {
       id: snapshot.id,
       recipeId: data?.recipeId ?? parentRecipeId,
-      authorId: data?.authorId ?? '',
+      userId: data?.userId ?? '',
       text: data?.text ?? '',
       stats: {
         good: data?.stats?.good ?? 0,

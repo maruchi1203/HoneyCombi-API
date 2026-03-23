@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { CreateRecipeDto } from '../dto/index.dto';
 import { RecipeListQueryDto } from '../dto/index.dto';
 import { UpdateRecipeDto } from '../dto/index.dto';
+import type { RecipeListItem } from '../entities/recipe.list-item.entity';
 import type { RecipesPort } from '../ports/recipes.port';
 import { RECIPE_REPOSITORY } from '../recipe.tokens';
 
@@ -33,7 +34,7 @@ export class RecipesUseCase {
     return items;
   }
 
-  async findTopRecipeListItems() {
+  async findTopRecipeListItems(): Promise<RecipeListItem[]> {
     const items = (await this.recipeRepository.findTopRecipeListItems(10)) ?? [];
     return items;
   }

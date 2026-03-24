@@ -1,4 +1,7 @@
-﻿import { Module } from '@nestjs/common';
+/**
+ * users 도메인의 컨트롤러, 유스케이스, 저장소 구현을 조립하는 Nest 모듈입니다.
+ */
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersController } from './users.controller';
 import { USERS_REPOSITORY } from './users.tokens';

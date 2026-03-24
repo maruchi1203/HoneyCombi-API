@@ -1,3 +1,6 @@
+/**
+ * 사용자 저장소가 제공해야 하는 기능을 정의한 포트 인터페이스입니다.
+ */
 import { RegisterUserCommand, UpdateUserDto } from '../dto/index.dto';
 import { User } from '../entities/user.entity';
 

@@ -1,3 +1,6 @@
+﻿/**
+ * PostgreSQL과 S3를 사용해 사용자 정보를 저장하는 저장소 구현입니다.
+ */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,10 +13,6 @@ import { User } from '../entities/user.entity';
 import { UsersPort } from '../ports/users.port';
 import { UserOrmEntity } from './entities/user.orm-entity';
 
-/**
- * PostgreSQL(TypeORM) 기반 사용자 저장소입니다.
- * 사용자 메타데이터는 DB에 저장하고, 프로필 이미지는 S3에 업로드합니다.
- */
 @Injectable()
 export class SupabaseUsersRepository implements UsersPort {
   constructor(
@@ -22,11 +21,22 @@ export class SupabaseUsersRepository implements UsersPort {
     private readonly s3Storage: S3StorageService,
   ) {}
 
+  /**
+   * 사용자 ID로 사용자 정보를 조회합니다.
+   * @param userId 조회 대상 사용자 ID
+   * @returns 사용자 정보 또는 null
+   */
   async findOne(userId: string): Promise<User | null> {
     const row = await this.userRepo.findOne({ where: { userId } });
     return row ? this.mapUser(row) : null;
   }
 
+  /**
+   * 사용자를 생성하거나 기존 사용자 프로필을 갱신합니다.
+   * @param registerData 등록 DTO
+   * @param profileImage 프로필 이미지 파일
+   * @returns 저장된 사용자 정보
+   */
   async register(
     registerData: RegisterUserCommand,
     profileImage?: Express.Multer.File,
@@ -62,6 +72,13 @@ export class SupabaseUsersRepository implements UsersPort {
     return this.mapUser(saved);
   }
 
+  /**
+   * 사용자 정보를 수정합니다.
+   * @param userId 수정 대상 사용자 ID
+   * @param data 수정 DTO
+   * @param profileImage 프로필 이미지 파일
+   * @returns 수정된 사용자 정보
+   */
   async update(
     userId: string,
     data: UpdateUserDto,
@@ -84,12 +101,20 @@ export class SupabaseUsersRepository implements UsersPort {
     return this.mapUser(updated);
   }
 
+  /**
+   * 사용자 정보를 삭제합니다.
+   * @param userId 삭제 대상 사용자 ID
+   * @returns 삭제 완료 결과
+   */
   async unregister(userId: string): Promise<void> {
     await this.userRepo.delete({ userId });
   }
 
   /**
-   * 메모리 업로드된 프로필 이미지를 S3에 저장하고 저장 경로를 반환합니다.
+   * 메모리에 올라온 프로필 이미지를 S3에 저장하고 경로를 반환합니다.
+   * @param userId 사용자 ID
+   * @param profileImage 프로필 이미지 파일
+   * @returns 저장된 프로필 이미지 경로 또는 undefined
    */
   private async uploadProfileImage(
     userId: string,
@@ -105,6 +130,11 @@ export class SupabaseUsersRepository implements UsersPort {
     return storagePath;
   }
 
+  /**
+   * MIME 타입에서 파일 확장자를 추출합니다.
+   * @param mimeType 업로드 파일의 MIME 타입
+   * @returns 저장 경로에 사용할 확장자
+   */
   private resolveFileExtension(mimeType: string | undefined) {
     const type = mimeType ?? '';
     if (!type.includes('/')) {
@@ -115,7 +145,9 @@ export class SupabaseUsersRepository implements UsersPort {
   }
 
   /**
-   * DB 행을 API 응답용 사용자 모델로 변환하면서 서명 URL을 함께 채웁니다.
+   * DB 행을 API 응답용 사용자 모델로 변환하고 signed URL을 채웁니다.
+   * @param row 사용자 ORM 엔티티
+   * @returns 응답용 사용자 모델
    */
   private async mapUser(row: UserOrmEntity): Promise<User> {
     return {

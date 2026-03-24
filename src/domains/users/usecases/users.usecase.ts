@@ -1,3 +1,6 @@
+﻿/**
+ * 사용자 관련 요청을 정리해 저장소 포트로 전달하는 유스케이스 계층입니다.
+ */
 import { Injectable, Inject } from '@nestjs/common';
 import {
   RegisterUserCommand,
@@ -6,10 +9,6 @@ import {
 import type { UsersPort } from '../ports/users.port';
 import { USERS_REPOSITORY } from '../users.tokens';
 
-/**
- * 사용자 도메인의 애플리케이션 서비스입니다.
- * 컨트롤러 요청을 저장소 인터페이스에 연결하는 얇은 조정 계층 역할을 합니다.
- */
 @Injectable()
 export class UsersUseCase {
   constructor(
@@ -17,11 +16,22 @@ export class UsersUseCase {
     private readonly usersRepository: UsersPort,
   ) {}
 
+  /**
+   * 사용자 정보를 조회합니다.
+   * @param userId 조회 대상 사용자 ID
+   * @returns 사용자 정보 또는 null
+   */
   findUserInfo(userId: string) {
     const txnRes = this.usersRepository.findOne(userId);
     return txnRes;
   }
 
+  /**
+   * 사용자 등록 요청을 저장소에 전달합니다.
+   * @param registerUserDto 등록 DTO
+   * @param profileImage 프로필 이미지 파일
+   * @returns 저장된 사용자 정보
+   */
   register(
     registerUserDto: RegisterUserCommand,
     profileImage?: Express.Multer.File,
@@ -30,6 +40,13 @@ export class UsersUseCase {
     return txnRes;
   }
 
+  /**
+   * 사용자 수정 요청을 저장소에 전달합니다.
+   * @param userId 수정 대상 사용자 ID
+   * @param updateUserInfoDto 수정 DTO
+   * @param profileImage 프로필 이미지 파일
+   * @returns 수정된 사용자 정보
+   */
   update(
     userId: string,
     updateUserInfoDto: UpdateUserInfoDto,
@@ -43,6 +60,11 @@ export class UsersUseCase {
     return txnRes;
   }
 
+  /**
+   * 사용자 삭제 요청을 저장소에 전달합니다.
+   * @param userId 삭제 대상 사용자 ID
+   * @returns 삭제 완료 결과
+   */
   unregister(userId: string) {
     const txnRes = this.usersRepository.unregister(userId);
     return txnRes;

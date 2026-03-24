@@ -1,3 +1,6 @@
+﻿/**
+ * 사용자 조회, 등록, 수정, 탈퇴 HTTP 요청을 처리하는 컨트롤러입니다.
+ */
 import {
   BadRequestException,
   Body,
@@ -21,21 +24,26 @@ import { RegisterUserDto, UpdateUserDto } from './dto/index.dto';
 import { UsersUseCase } from './usecases/users.usecase';
 import { AuthGuard } from '../../common/guards/auth.guard';
 
-/**
- * 사용자 조회, 등록, 수정, 탈퇴 API를 노출합니다.
- * 인증이 필요한 변경 작업은 현재 로그인한 사용자만 수행할 수 있습니다.
- */
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersUseCase: UsersUseCase) {}
 
+  /**
+   * 사용자 ID로 사용자 정보를 조회합니다.
+   * @param userId 조회 대상 사용자 ID
+   * @returns 사용자 정보 또는 null
+   */
   @Get(':userId')
   findOne(@Param('userId') userId: string) {
     return this.usersUseCase.findUserInfo(userId);
   }
 
   /**
-   * 인증된 사용자 ID를 기준으로 회원 정보를 생성하거나 초기 프로필을 갱신합니다.
+   * 인증 사용자 ID를 기준으로 사용자 정보를 생성하거나 초기 프로필을 갱신합니다.
+   * @param body 등록 요청 본문
+   * @param req 인증 사용자 정보가 담긴 요청 객체
+   * @param profileImage 프로필 이미지 파일
+   * @returns 저장된 사용자 정보
    */
   @Post('register')
   @UseGuards(AuthGuard)
@@ -66,6 +74,14 @@ export class UsersController {
     );
   }
 
+  /**
+   * 특정 사용자 정보를 수정합니다.
+   * @param userId 수정 대상 사용자 ID
+   * @param updateUserInfoDto 수정 요청 본문
+   * @param req 인증 사용자 정보가 담긴 요청 객체
+   * @param profileImage 새 프로필 이미지 파일
+   * @returns 수정된 사용자 정보
+   */
   @Patch(':userId')
   @UseGuards(AuthGuard)
   @UseInterceptors(
@@ -83,6 +99,12 @@ export class UsersController {
     return this.usersUseCase.update(userId, updateUserInfoDto, profileImage);
   }
 
+  /**
+   * 특정 사용자를 삭제합니다.
+   * @param userId 삭제 대상 사용자 ID
+   * @param req 인증 사용자 정보가 담긴 요청 객체
+   * @returns 삭제 완료 결과
+   */
   @Delete(':userId')
   @UseGuards(AuthGuard)
   unregister(
@@ -94,7 +116,9 @@ export class UsersController {
   }
 
   /**
-   * 인증 미들웨어가 주입한 사용자 ID를 읽고, 없으면 즉시 401을 반환합니다.
+   * 요청 객체에서 인증 사용자 ID를 꺼냅니다.
+   * @param req 인증 사용자 정보가 담긴 요청 객체
+   * @returns 인증 사용자 ID
    */
   private getAuthenticatedUserId(req: Request & { user?: { id?: string } }) {
     const userId = req.user?.id;
@@ -106,7 +130,10 @@ export class UsersController {
   }
 
   /**
-   * URL 파라미터의 대상 사용자와 현재 인증된 사용자가 같은지 검사합니다.
+   * 현재 인증 사용자와 URL의 사용자 ID가 같은지 확인합니다.
+   * @param targetUserId URL 경로의 사용자 ID
+   * @param req 인증 사용자 정보가 담긴 요청 객체
+   * @returns 본인 확인 결과
    */
   private assertCurrentUser(
     targetUserId: string,

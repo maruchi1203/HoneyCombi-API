@@ -1,3 +1,6 @@
+/**
+ * 목록과 Top10 조회에서 사용하는 레시피 요약 도메인 모델입니다.
+ */
 export interface RecipeListItem {
   recipeId: string;
   userId: string;

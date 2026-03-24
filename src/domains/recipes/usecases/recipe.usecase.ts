@@ -1,3 +1,6 @@
+/**
+ * 레시피 관련 요청을 정리해 저장소 포트로 전달하는 유스케이스 계층입니다.
+ */
 import { Injectable, Inject } from '@nestjs/common';
 import { CreateRecipeDto } from '../dto/index.dto';
 import { RecipeListQueryDto } from '../dto/index.dto';
@@ -17,11 +20,22 @@ export class RecipesUseCase {
     private readonly recipeRepository: RecipesPort,
   ) {}
 
+  /**
+   * 레시피 생성 요청을 저장소에 전달합니다.
+   * @param createPostDto 생성 DTO
+   * @param files 업로드 이미지 파일 목록
+   * @returns 생성된 레시피 상세 정보
+   */
   createRecipe(createPostDto: CreateRecipeDto, files?: Express.Multer.File[]) {
     const result = this.recipeRepository.createRecipe(createPostDto, files);
     return result;
   }
 
+  /**
+   * 목록 조회 조건을 정규화한 뒤 레시피 목록을 조회합니다.
+   * @param query 목록 조회 조건
+   * @returns 레시피 요약 배열
+   */
   async findRecipeListItems(query?: RecipeListQueryDto) {
     const cursor = query?.cursor;
     const sort = query?.sort ?? 'latest';
@@ -34,17 +48,32 @@ export class RecipesUseCase {
     return items;
   }
 
+  /**
+   * 조회 수 기준 Top10 목록을 조회합니다.
+   * @returns 상위 레시피 요약 배열
+   */
   async findTopRecipeListItems(): Promise<RecipeListItem[]> {
     const items = (await this.recipeRepository.findTopRecipeListItems(10)) ?? [];
     return items;
   }
 
+  /**
+   * 레시피 상세 정보를 조회합니다.
+   * @param recipeId 조회할 레시피 ID
+   * @returns 레시피 상세 정보 또는 null
+   */
   findFullRecipe(recipeId: string) {
     const result = this.recipeRepository.findFullRecipe(recipeId);
 
     return result;
   }
 
+  /**
+   * 레시피 수정 요청을 저장소에 전달합니다.
+   * @param recipeId 수정 대상 레시피 ID
+   * @param updatePostDto 수정 DTO
+   * @returns 수정된 레시피 상세 정보
+   */
   updateFullRecipe(recipeId: string, updatePostDto: UpdateRecipeDto) {
     const result = this.recipeRepository.updateFullRecipe(
       recipeId,
@@ -53,6 +82,11 @@ export class RecipesUseCase {
     return result;
   }
 
+  /**
+   * 레시피 삭제 요청을 저장소에 전달합니다.
+   * @param recipeId 삭제 대상 레시피 ID
+   * @returns 삭제 완료 결과
+   */
   deleteRecipe(recipeId: string) {
     const result = this.recipeRepository.deleteRecipe(recipeId);
     return result;

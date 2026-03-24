@@ -1,3 +1,6 @@
+/**
+ * recipes 도메인의 컨트롤러, 유스케이스, 저장소 구현을 조립하는 Nest 모듈입니다.
+ */
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RecipesController as RecipesController } from './recipe.controller';

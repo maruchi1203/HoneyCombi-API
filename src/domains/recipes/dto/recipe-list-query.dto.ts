@@ -1,3 +1,6 @@
+/**
+ * 레시피 목록 조회의 정렬, 커서, 개수 조건을 받는 DTO입니다.
+ */
 import { Type } from 'class-transformer';
 import { IsIn, IsOptional, IsString, Max, Min } from 'class-validator';
 

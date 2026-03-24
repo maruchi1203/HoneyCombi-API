@@ -1,4 +1,7 @@
-﻿import {
+/**
+ * 레시피와 댓글 관련 HTTP 요청을 받아 입력을 정규화한 뒤 유스케이스로 전달하는 컨트롤러입니다.
+ */
+import {
   Controller,
   Get,
   Post,
@@ -67,6 +70,11 @@ export class RecipesController {
     return this.recipeUseCase.createRecipe(createRecipeDto, files);
   }
 
+  /**
+   * 목록 조회 파라미터를 받아 정렬과 커서 조건에 맞는 레시피 목록을 반환합니다.
+   * @param query 정렬, 커서, limit 정보
+   * @returns 목록용 레시피 요약 배열
+   */
   @Get()
   findMultipleRecipes(@Query() query: RecipeListQueryDto) {
     const result = this.recipeUseCase.findRecipeListItems(query);
@@ -74,18 +82,31 @@ export class RecipesController {
   }
 
   /**
-   * 조회 수 기준 상위 10개 레시피를 빠르게 조회합니다.
+   * 조회 수 기준 상위 10개 레시피를 목록 모델로 반환합니다.
+   * @returns Top10 레시피 요약 배열
    */
   @Get('top')
   findTopRankingRecipes(): Promise<RecipeListItem[]> {
     return this.recipeUseCase.findTopRecipeListItems();
   }
 
+  /**
+   * 레시피 ID로 상세 정보를 조회합니다.
+   * @param recipeId 조회할 레시피 ID
+   * @returns 레시피 상세 정보 또는 null
+   */
   @Get(':recipeId')
   findFullRecipe(@Param('recipeId') recipeId: string) {
     return this.recipeUseCase.findFullRecipe(recipeId);
   }
 
+  /**
+   * 레시피 수정 요청을 받아 작성자 본인 여부를 확인한 뒤 수정합니다.
+   * @param recipeId 수정 대상 레시피 ID
+   * @param updatePostDto 수정 입력 값
+   * @param req 인증 사용자 정보가 담긴 요청 객체
+   * @returns 수정된 레시피 상세 정보
+   */
   @Patch(':recipeId')
   @UseGuards(AuthGuard)
   async updateRecipe(
@@ -99,6 +120,12 @@ export class RecipesController {
     return this.recipeUseCase.updateFullRecipe(recipeId, parsedUpdateDto);
   }
 
+  /**
+   * 레시피 삭제 요청을 받아 작성자 본인 여부를 확인한 뒤 삭제합니다.
+   * @param recipeId 삭제 대상 레시피 ID
+   * @param req 인증 사용자 정보가 담긴 요청 객체
+   * @returns 삭제 완료 결과
+   */
   @Delete(':recipeId')
   @UseGuards(AuthGuard)
   async deleteRecipe(
@@ -110,6 +137,13 @@ export class RecipesController {
     return this.recipeUseCase.deleteRecipe(recipeId);
   }
 
+  /**
+   * 특정 레시피에 댓글을 생성합니다.
+   * @param recipeId 댓글이 달릴 레시피 ID
+   * @param body 댓글 본문 입력 값
+   * @param req 인증 사용자 정보가 담긴 요청 객체
+   * @returns 생성된 댓글 정보
+   */
   @Post(':recipeId/comments')
   @UseGuards(AuthGuard)
   createComment(
@@ -126,11 +160,24 @@ export class RecipesController {
     return this.commentUseCase.createComment(payload);
   }
 
+  /**
+   * 특정 사용자가 작성한 댓글 목록을 조회합니다.
+   * @param authorId 댓글 작성자 ID
+   * @returns 댓글 배열
+   */
   @Get('comments/user/:authorId')
   findCommentsByUser(@Param('authorId') authorId: string) {
     return this.commentUseCase.findCommentsByUser(authorId);
   }
 
+  /**
+   * 특정 댓글을 수정합니다.
+   * @param recipeId 댓글이 속한 레시피 ID
+   * @param commentId 수정 대상 댓글 ID
+   * @param body 수정할 댓글 내용
+   * @param req 인증 사용자 정보가 담긴 요청 객체
+   * @returns 수정된 댓글 정보
+   */
   @Patch(':recipeId/comments/:commentId')
   @UseGuards(AuthGuard)
   updateComment(
@@ -148,6 +195,13 @@ export class RecipesController {
     return this.commentUseCase.updateComment(authorId, payload);
   }
 
+  /**
+   * 특정 댓글을 삭제합니다.
+   * @param recipeId 댓글이 속한 레시피 ID
+   * @param commentId 삭제 대상 댓글 ID
+   * @param req 인증 사용자 정보가 담긴 요청 객체
+   * @returns 삭제 완료 결과
+   */
   @Delete(':recipeId/comments/:commentId')
   @UseGuards(AuthGuard)
   deleteComment(
@@ -159,10 +213,13 @@ export class RecipesController {
     return this.commentUseCase.deleteComment(authorId, recipeId, commentId);
   }
 
-  // #region private
+  // #region local
   /**
    * 생성 요청 본문을 서버 내부 DTO로 변환합니다.
    * multipart/form-data 에서 문자열로 들어온 배열과 숫자를 여기서 정리합니다.
+   * @param body 원본 생성 요청 본문
+   * @param authorId 인증 사용자 ID
+   * @returns 내부 생성 DTO
    */
   private parseCreateRecipeBody(
     body: CreateRecipeInput,
@@ -190,6 +247,8 @@ export class RecipesController {
 
   /**
    * 수정 요청에서는 값이 비어 있는 필드를 undefined로 통일해 부분 업데이트 의미를 유지합니다.
+   * @param body 원본 수정 요청 본문
+   * @returns 내부 수정 DTO
    */
   private parseUpdateRecipeBody(body: UpdateRecipeInput): UpdateRecipeDto {
     if (!body) {
@@ -217,6 +276,8 @@ export class RecipesController {
 
   /**
    * 숫자 입력이 문자열로 들어오더라도 안전하게 number로 변환합니다.
+   * @param value number 또는 문자열 형태의 가격 값
+   * @returns 정규화된 숫자 또는 undefined
    */
   private parseNumber(value?: number | string) {
     if (value === undefined || value === null || value === '') {
@@ -233,6 +294,8 @@ export class RecipesController {
 
   /**
    * step 정보는 JSON 문자열 또는 배열 둘 다 허용하며, 최종적으로 내부 엔티티 배열로 맞춥니다.
+   * @param value 문자열 또는 배열 형태의 step 입력 값
+   * @returns 정규화된 레시피 step 배열
    */
   private parseToRecipeStepEntity(
     value?: RecipeStepEntity[] | string,
@@ -280,6 +343,11 @@ export class RecipesController {
     }
   }
 
+  /**
+   * 느슨한 JSON 문자열을 최대한 보정해서 파싱합니다.
+   * @param raw 원본 JSON 문자열
+   * @returns 파싱된 값
+   */
   private parseLooseJson(raw: string) {
     try {
       return JSON.parse(raw);
@@ -311,6 +379,8 @@ export class RecipesController {
 
   /**
    * 배열 입력은 JSON 문자열과 콤마 구분 문자열을 모두 허용합니다.
+   * @param value 문자열 또는 배열 형태의 입력 값
+   * @returns 문자열 배열
    */
   private parseStringArray(value?: string[] | string) {
     if (value === undefined || value === null || value === '') {
@@ -341,6 +411,11 @@ export class RecipesController {
     }
   }
 
+  /**
+   * 요청 객체에서 인증 사용자 ID를 꺼냅니다.
+   * @param req 인증 사용자 정보가 담긴 요청 객체
+   * @returns 인증 사용자 ID
+   */
   private getAuthenticatedUserId(req: Request & { user?: { id?: string } }) {
     const userId = req.user?.id;
     if (!userId) {
@@ -352,6 +427,9 @@ export class RecipesController {
 
   /**
    * 수정/삭제 전에 현재 사용자가 해당 레시피 작성자인지 확인합니다.
+   * @param recipeId 검사 대상 레시피 ID
+   * @param userId 현재 인증 사용자 ID
+   * @returns 작성자 검증 완료 결과
    */
   private async assertRecipeOwner(recipeId: string, userId: string) {
     const recipe = await this.recipeUseCase.findFullRecipe(recipeId);

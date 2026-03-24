@@ -1,3 +1,6 @@
+/**
+ * Firebase Firestore와 Storage를 사용해 레시피와 댓글을 저장하는 저장소 구현입니다.
+ */
 import { Injectable } from '@nestjs/common';
 import admin from 'firebase-admin';
 import {
@@ -102,6 +105,11 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
     return snapshot.docs.map((doc) => this.mapSnapshotForRecipeListItem(doc));
   }
 
+  /**
+   * 조회 수 기준 Top 레시피 목록을 Firestore에서 조회합니다.
+   * @param limit 조회할 상위 개수
+   * @returns Top 레시피 요약 배열
+   */
   async findTopRecipeListItems(limit: number): Promise<RecipeListItem[]> {
     const db = getFirestore();
     const snapshot = await db
@@ -226,6 +234,11 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
     return snapshot.docs.map((doc) => this.mapSnapshotForComment(doc));
   }
 
+  /**
+   * 특정 레시피에 달린 댓글을 최신순으로 조회합니다.
+   * @param recipeId 조회 대상 레시피 ID
+   * @returns 댓글 배열
+   */
   async findCommentsByRecipe(recipeId: string): Promise<Comment[] | null> {
     const db = getFirestore();
     const snapshot = await db
@@ -243,6 +256,12 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
     return snapshot.docs.map((doc) => this.mapSnapshotForComment(doc));
   }
 
+  /**
+   * 댓글 작성자 본인 여부를 확인한 뒤 댓글 내용을 수정합니다.
+   * @param authorId 현재 인증 사용자 ID
+   * @param data 댓글 수정 DTO
+   * @returns 수정된 댓글 정보
+   */
   async updateComment(
     authorId: string,
     data: UpdateCommentDto,
@@ -273,6 +292,13 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
     return this.mapSnapshotForComment(updated);
   }
 
+  /**
+   * 댓글 작성자 본인 여부를 확인한 뒤 댓글을 삭제하고 댓글 수를 줄입니다.
+   * @param authorId 현재 인증 사용자 ID
+   * @param recipeId 댓글이 속한 레시피 ID
+   * @param commentId 삭제 대상 댓글 ID
+   * @returns 삭제 완료 결과
+   */
   async deleteComment(
     authorId: string,
     recipeId: string,
@@ -362,6 +388,11 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
     };
   }
 
+  /**
+   * Firestore 댓글 문서를 댓글 응답 모델로 변환합니다.
+   * @param snapshot Firestore 댓글 문서 스냅샷
+   * @returns 댓글 모델
+   */
   private mapSnapshotForComment(
     snapshot: admin.firestore.DocumentSnapshot,
   ): Comment {
@@ -386,6 +417,13 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
   // #region Private
   /**
    * 업로드된 파일 목록에서 썸네일과 step 이미지를 분리해 Storage에 저장합니다.
+   */
+  /**
+   * 업로드 파일을 썸네일과 step 이미지로 나눠 Firebase Storage에 저장합니다.
+   * @param recipeId 생성 대상 레시피 ID
+   * @param steps 레시피 step 배열
+   * @param files 업로드 파일 목록
+   * @returns 정규화된 step 이미지 정보와 썸네일 경로
    */
   private async uploadRecipeImages(
     recipeId: string,

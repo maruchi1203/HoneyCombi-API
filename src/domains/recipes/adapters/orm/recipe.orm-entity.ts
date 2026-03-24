@@ -1,3 +1,6 @@
+/**
+ * 레시피 본문과 통계 정보를 저장하는 TypeORM 엔티티입니다.
+ */
 import {
   Entity,
   PrimaryGeneratedColumn,

@@ -1,3 +1,6 @@
+/**
+ * 상세 조회에 사용하는 레시피 전체 도메인 모델입니다.
+ */
 import { RecipeStepEntity } from './recipe-step.entity';
 
 export interface Recipe {

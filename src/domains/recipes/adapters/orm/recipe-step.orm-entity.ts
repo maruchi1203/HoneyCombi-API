@@ -1,3 +1,6 @@
+/**
+ * 레시피 step 테이블과 매핑되는 TypeORM 엔티티입니다.
+ */
 import {
   Column,
   Entity,

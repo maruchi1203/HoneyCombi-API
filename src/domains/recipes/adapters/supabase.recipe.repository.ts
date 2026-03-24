@@ -124,6 +124,26 @@ export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
     return items;
   }
 
+  async findTopRecipeListItems(limit: number): Promise<RecipeListItem[]> {
+    const cacheKey = `recipes:top:view:${limit}`;
+    const cached = await this.cache.getJson<RecipeListItem[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const rows = await this.recipeRepo.find({
+      order: { statsView: 'DESC', createdAt: 'DESC' },
+      take: limit,
+    });
+
+    const items = await Promise.all(
+      rows.map((row) => this.mapRecipeListItem(row)),
+    );
+
+    await this.cache.setJson(cacheKey, items, 60);
+    return items;
+  }
+
   async findFullRecipe(recipeId: string): Promise<Recipe | null> {
     const cacheKey = `recipes:detail:${recipeId}`;
     const cached = await this.cache.getJson<Recipe>(cacheKey);
@@ -336,7 +356,7 @@ export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
     return {
       id: row.commentId,
       recipeId: row.recipeId,
-      authorId: row.userId,
+      userId: row.userId,
       text: row.text,
       stats: {
         good: row.statsGood,
@@ -476,6 +496,7 @@ export class SupabaseRecipesRepository implements RecipesPort, CommentsPort {
   private async invalidateRecipeCache(recipeId: string) {
     // 목록과 상세 캐시는 서로 다른 키 공간을 사용하므로 둘 다 비워야 합니다.
     await this.cache.delByPrefix('recipes:list:');
+    await this.cache.delByPrefix('recipes:top:view:');
     await this.cache.delByPrefix(`recipes:detail:${recipeId}`);
   }
 

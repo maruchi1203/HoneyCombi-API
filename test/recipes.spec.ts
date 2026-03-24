@@ -89,6 +89,34 @@ describe('recipes suite', () => {
     expect(response.body.steps[0].text).toBe('updated step');
   });
 
+  it('returns top recipes by view ranking', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/recipes/top')
+      .expect(200);
+
+    expect(Array.isArray(response.body)).toBe(true);
+    const topRecipe = response.body.find(
+      (recipe: { recipeId: string }) => recipe.recipeId === recipeId,
+    );
+
+    expect(topRecipe).toMatchObject({
+      recipeId,
+      userId,
+      title: 'recipe updated title',
+      categories: ['A', 'B', 'C'],
+      summary: 'recipe updated summary',
+      stats: {
+        comment: expect.any(Number),
+        totalRate: expect.any(Number),
+        view: expect.any(Number),
+      },
+      createdAt: expect.any(String),
+    });
+    expect(topRecipe.id).toBeUndefined();
+    expect(topRecipe.authorId).toBeUndefined();
+    expect(topRecipe.steps).toBeUndefined();
+  });
+
   it('deletes a recipe', async () => {
     await request(app.getHttpServer())
       .delete(`/recipes/${recipeId}`)

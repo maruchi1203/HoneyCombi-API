@@ -6,38 +6,14 @@ type AuthRequest = Request & { user?: { id?: string; email?: string } };
 
 /**
  * AuthGuard 통과를 위한 미들웨어
- * @param req
- * @param _res
- * @param next
+ * @param req HTTP 요청 객체
+ * @param next 미들웨어나 다음 단계로 요청 처리를 넘기는 함수
  * @returns
  */
 export async function firebaseAuthMiddleware(
   req: AuthRequest,
-  _res: Response,
   next: NextFunction,
 ) {
-  const allowDevHeaderAuth = process.env.ALLOW_DEV_AUTH_HEADER === 'true';
-  const devUserIdHeader = req.headers['x-user-id'];
-  const devUserEmailHeader = req.headers['x-user-email'];
-
-  if (allowDevHeaderAuth) {
-    const devUserId = Array.isArray(devUserIdHeader)
-      ? devUserIdHeader[0]
-      : devUserIdHeader;
-    const devUserEmail = Array.isArray(devUserEmailHeader)
-      ? devUserEmailHeader[0]
-      : devUserEmailHeader;
-
-    if (devUserId) {
-      req.user = {
-        ...(req.user ?? {}),
-        id: devUserId,
-        email: devUserEmail,
-      };
-      return next();
-    }
-  }
-
   const header = req.headers['authorization'];
   if (!header) {
     return next();

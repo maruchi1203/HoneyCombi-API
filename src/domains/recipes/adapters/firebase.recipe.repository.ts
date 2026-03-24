@@ -102,6 +102,18 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
     return snapshot.docs.map((doc) => this.mapSnapshotForRecipeListItem(doc));
   }
 
+  async findTopRecipeListItems(limit: number): Promise<RecipeListItem[]> {
+    const db = getFirestore();
+    const snapshot = await db
+      .collection(this.recipesColName)
+      .orderBy('stats.view', 'desc')
+      .orderBy('createdAt', 'desc')
+      .limit(limit)
+      .get();
+
+    return snapshot.docs.map((doc) => this.mapSnapshotForRecipeListItem(doc));
+  }
+
   /**
    * 레시피 단건 상세 정보를 조회합니다.
    * @param recipeId
@@ -248,7 +260,7 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
     }
 
     const existing = snapshot.data() as Partial<Comment> | undefined;
-    if (existing?.authorId !== authorId) {
+    if (existing?.userId !== authorId) {
       throw new Error('Not allowed to update this comment.');
     }
 
@@ -278,7 +290,7 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
     }
 
     const existing = snapshot.data() as Partial<Comment> | undefined;
-    if (existing?.authorId !== authorId) {
+    if (existing?.userId !== authorId) {
       throw new Error('Not allowed to delete this comment.');
     }
 
@@ -359,7 +371,7 @@ export class FirebaseRecipesRepository implements RecipesPort, CommentsPort {
     return {
       id: snapshot.id,
       recipeId: data?.recipeId ?? parentRecipeId,
-      authorId: data?.authorId ?? '',
+      userId: data?.userId ?? '',
       text: data?.text ?? '',
       stats: {
         good: data?.stats?.good ?? 0,

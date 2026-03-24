@@ -8,6 +8,7 @@ export interface RecipesPort {
     input: CreateRecipeDto,
     files?: Express.Multer.File[],
   ): Promise<Recipe>;
+  findTopRecipeListItems(limit: number): Promise<RecipeListItem[] | null>;
   findRecipeListItems(
     cursor: string | undefined,
     sort: string,

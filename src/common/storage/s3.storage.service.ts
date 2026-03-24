@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import {
   GetObjectCommand,
   PutObjectCommand,
@@ -6,6 +6,9 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
+/**
+ * S3 업로드와 다운로드용 signed URL 생성을 담당하는 공통 스토리지 서비스입니다.
+ */
 @Injectable()
 export class S3StorageService {
   private readonly bucketName: string;
@@ -14,6 +17,7 @@ export class S3StorageService {
   private readonly client: S3Client;
 
   constructor() {
+    // signed URL 만료 시간 외의 필수 AWS 환경변수는 시작 시점에 모두 검증합니다.
     const missingEnvs = [
       'AWS_S3_BUCKET',
       'AWS_REGION',
@@ -22,7 +26,7 @@ export class S3StorageService {
     ].filter((name) => !process.env[name]?.trim());
 
     if (missingEnvs.length > 0) {
-      throw new Error(`AWS S3 환경변수가 누락됨 : ${missingEnvs.join(', ')}`);
+      throw new Error(`AWS S3 환경변수가 비어 있습니다: ${missingEnvs.join(', ')}`);
     }
 
     this.bucketName = process.env.AWS_S3_BUCKET ?? '';
@@ -40,7 +44,9 @@ export class S3StorageService {
     });
   }
 
-  // 사진 업로드 로직
+  /**
+   * Multer가 메모리에 올린 파일 버퍼를 지정한 S3 key에 업로드합니다.
+   */
   async uploadBuffer(
     key: string,
     file: Pick<Express.Multer.File, 'buffer' | 'mimetype'>,
@@ -59,6 +65,10 @@ export class S3StorageService {
     await this.client.send(command);
   }
 
+  /**
+   * 내부 저장 경로를 외부 다운로드용 signed URL로 변환합니다.
+   * 이미 완성된 URL이 들어오면 그대로 반환합니다.
+   */
   async getDownloadUrl(key: string | undefined | null) {
     if (!this.bucketName || !this.client || !this.signedUrlExpiresIn || !key) {
       return undefined;
